@@ -1,4 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -40,10 +42,30 @@ const navigation = [
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/login');
+      } else {
+        setUser(user);
+      }
+      setLoading(false);
+    };
+    checkUser();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate('/login');
   };
+
+  if (loading) {
+    return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+  }
 
   return (
     <div className="app-container">
@@ -121,11 +143,11 @@ export default function DashboardLayout() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <div style={{ textAlign: 'right' }}>
-                <p className="text-sm font-semibold">User Name</p>
+                <p className="text-sm font-semibold">{user?.email || 'User'}</p>
                 <p className="text-sm text-muted" style={{ fontSize: '0.75rem' }}>Project Manager</p>
               </div>
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#e3282f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                UN
+                {user?.email ? user.email.substring(0, 2).toUpperCase() : 'UN'}
               </div>
             </div>
           </div>

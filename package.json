@@ -1,0 +1,20 @@
+{
+  "name": "epms-root",
+  "version": "1.0.0",
+  "description": "Enterprise Project Management System",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm run install:client && npm run install:server",
+    "install:client": "cd client && npm install",
+    "install:server": "cd server && npm install",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "start": "concurrently \"npm run start:client\" \"npm run start:server\"",
+    "start:client": "cd client && npm run build && npm run preview",
+    "start:server": "cd server && npm run start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

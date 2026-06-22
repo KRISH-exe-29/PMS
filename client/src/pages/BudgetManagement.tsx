@@ -99,9 +99,7 @@ export default function BudgetManagement() {
                 </div>
               )}
             </div>
-            <div style={{ padding: '0.5rem', backgroundColor: 'var(--primary)', color: 'white', borderRadius: '50%' }}>
-              <DollarSign size={24} />
-            </div>
+
           </div>
         </div>
         
@@ -112,9 +110,7 @@ export default function BudgetManagement() {
               <h3 className="text-2xl font-bold text-warning">₹ {actualCost.toLocaleString('en-IN')}</h3>
               <p className="text-xs text-muted mt-1">Auto Calculated</p>
             </div>
-            <div style={{ padding: '0.5rem', backgroundColor: 'var(--warning)', color: 'white', borderRadius: '50%' }}>
-              <TrendingUp size={24} />
-            </div>
+
           </div>
         </div>
 
@@ -125,9 +121,7 @@ export default function BudgetManagement() {
               <h3 className="text-2xl font-bold text-success">₹ {remainingBudget.toLocaleString('en-IN')}</h3>
               <p className="text-xs text-muted mt-1">Auto Calculated</p>
             </div>
-            <div style={{ padding: '0.5rem', backgroundColor: 'var(--success)', color: 'white', borderRadius: '50%' }}>
-              <TrendingDown size={24} />
-            </div>
+
           </div>
         </div>
       </div>

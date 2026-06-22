@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, LogIn, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 const Logo = () => (
   <svg width="220" height="60" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -18,10 +19,10 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username) {
-      setError('Username is required');
+      setError('Email address is required');
       return;
     }
     if (!password) {
@@ -29,10 +30,22 @@ export default function Login() {
       return;
     }
     
-    if (username === 'admin' && password === 'admin') {
-      navigate('/');
-    } else {
-      setError('Invalid credentials (use admin/admin)');
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: username,
+        password: password,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      if (data.user) {
+        navigate('/');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during login');
     }
   };
 
@@ -141,10 +154,7 @@ export default function Login() {
         <div style={{ width: '100%', maxWidth: '380px', padding: '2rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <Logo />
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginTop: '1.5rem' }}>Welcome Back</h2>
-            <p style={{ marginTop: '0.5rem', color: '#64748b', fontSize: '0.95rem' }}>
-              Enter your credentials to access the portal
-            </p>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginTop: '1.5rem' }}>Project Management System</h2>
           </div>
 
           <form onSubmit={handleLogin} style={{ width: '100%' }}>
@@ -160,17 +170,17 @@ export default function Login() {
             
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label htmlFor="username" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
-                USER NAME
+                EMAIL ADDRESS
               </label>
               <input
                 id="username"
-                type="text"
+                type="email"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   setError('');
                 }}
-                placeholder="admin"
+                placeholder="name@company.com"
                 style={{
                   width: '100%', padding: '0.875rem 1rem', borderRadius: '0.5rem',
                   border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '0.95rem',
