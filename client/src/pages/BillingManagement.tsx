@@ -85,6 +85,7 @@ export default function BillingManagement() {
   const [paymentStatus, setPaymentStatus] = useState('Not Paid');
   const [actualDate, setActualDate] = useState('');
   const [fileName, setFileName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [currentBillingId, setCurrentBillingId] = useState<string | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentBilling, setCurrentBilling] = useState<Partial<Billing>>({});
@@ -101,6 +102,7 @@ export default function BillingManagement() {
     const file = e.target.files?.[0];
     if (file) {
       setFileName(file.name);
+      setSelectedFile(file);
     }
   };
 
@@ -113,6 +115,7 @@ export default function BillingManagement() {
     setPaymentStatus('Not Paid');
     setActualDate('');
     setFileName('');
+    setSelectedFile(null);
     setCurrentBillingId(null);
     setCurrentBilling({});
   };
@@ -126,7 +129,9 @@ export default function BillingManagement() {
     setPaymentStatus(bill.paymentStatus);
     setActualDate(bill.actualDate);
     setFileName(bill.attachmentUrl ? bill.attachmentUrl.split('/').pop() || '' : '');
+    setSelectedFile(null);
     setCurrentBillingId(bill.id);
+    setCurrentBilling(bill);
     setIsModalOpen(true);
   };
 
@@ -141,18 +146,48 @@ export default function BillingManagement() {
       return;
     }
 
-    const dbBilling = {
-      project_id: selectedProjectId,
-      milestone_id: selectedMilestoneId || null,
-      vendor_name: vendorName,
-      invoice_no: invoiceNo,
-      invoice_amount: parseFloat(invoiceAmount),
-      payment_status: paymentStatus,
-      attachment_url: fileName ? `mock_s3_url/${fileName}` : null,
-      actual_date: actualDate
-    };
-
     try {
+      let finalAttachmentUrl = currentBilling.attachmentUrl || null;
+
+      if (selectedFile) {
+        // Upload to bucket
+        const filePath = `public/${Date.now()}_${selectedFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('PRM document files')
+          .upload(filePath, selectedFile);
+          
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('PRM document files')
+          .getPublicUrl(filePath);
+
+        finalAttachmentUrl = publicUrlData.publicUrl;
+
+        // Automatically insert into Documents
+        const sizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
+        const dbDoc = {
+          project_id: selectedProjectId,
+          milestone_id: selectedMilestoneId || null,
+          remarks: `Billing Attachment (Invoice: ${invoiceNo})`,
+          file_name: selectedFile.name,
+          file_url: finalAttachmentUrl,
+          size_str: sizeMB
+        };
+        await supabase.from('documents').insert([dbDoc]);
+      }
+
+      const dbBilling = {
+        project_id: selectedProjectId,
+        milestone_id: selectedMilestoneId || null,
+        vendor_name: vendorName,
+        invoice_no: invoiceNo,
+        invoice_amount: parseFloat(invoiceAmount),
+        payment_status: paymentStatus,
+        attachment_url: finalAttachmentUrl,
+        actual_date: actualDate
+      };
+
       if (currentBillingId) {
         const { error } = await supabase.from('billings').update(dbBilling).eq('id', currentBillingId);
         if (error) throw error;
@@ -216,7 +251,7 @@ export default function BillingManagement() {
               <th>Project</th>
               <th>Milestone</th>
               <th>Amount</th>
-              <th>Date</th>
+              <th>Invoice Date</th>
               <th>Status</th>
               <th>Attachment</th>
               <th>Actions</th>
@@ -254,10 +289,16 @@ export default function BillingManagement() {
                   </td>
                   <td>
                     {bill.attachmentUrl ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#64748b', fontSize: '0.875rem' }}>
+                      <a 
+                        href={bill.attachmentUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontSize: '0.875rem', textDecoration: 'none', fontWeight: 500 }}
+                        title="View Document"
+                      >
                         <Receipt size={16} />
-                        Document
-                      </span>
+                        View
+                      </a>
                     ) : '-'}
                   </td>
                   <td>
@@ -366,18 +407,20 @@ export default function BillingManagement() {
               <div className="form-group">
                 <label className="form-label">Invoice Amount *</label>
                 <input 
-                  type="number" 
+                  type="text" 
                   className="form-input"
                   value={invoiceAmount}
-                  onChange={(e) => setInvoiceAmount(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+                    setInvoiceAmount(val);
+                  }}
                   placeholder="0.00"
-                  step="0.01"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Actual Date *</label>
+                <label className="form-label">Invoice Date *</label>
                 <input 
                   type="date" 
                   className="form-input"

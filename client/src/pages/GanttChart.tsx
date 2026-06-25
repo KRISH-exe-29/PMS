@@ -11,6 +11,7 @@ const CustomTaskListHeader: React.FC<{ headerHeight: number; rowWidth: string; f
       <div style={{ flex: 1, minWidth: '150px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>Name</div>
       <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>From</div>
       <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>To</div>
+      <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>Status</div>
       <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>Duration</div>
     </div>
   );
@@ -48,6 +49,7 @@ const CustomTaskListTable: React.FC<{
              </div>
              <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>{t.start.toLocaleDateString('en-GB')}</div>
              <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>{t.end.toLocaleDateString('en-GB')}</div>
+             <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>{(t as any).statusStr || '-'}</div>
              <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 'bold' }}>{durationDays} d</div>
           </div>
         );
@@ -76,6 +78,7 @@ export default function GanttChart() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const getProgress = (status: string) => {
     switch(status) {
@@ -87,23 +90,27 @@ export default function GanttChart() {
     }
   };
 
-  const getSafeDates = (startStr: string, endStr: string) => {
-    let start = new Date(startStr);
-    let end = new Date(endStr);
-    
-    if (isNaN(start.getTime())) start = new Date();
-    if (isNaN(end.getTime())) {
-      end = new Date(start);
-      end.setDate(end.getDate() + 1);
+  const getValidDate = (...dateStrs: (string | null | undefined)[]) => {
+    for (const d of dateStrs) {
+      if (d && d.trim() !== '') {
+        const date = new Date(d);
+        if (!isNaN(date.getTime())) return date;
+      }
     }
+    return new Date();
+  };
+
+  const getSafeDates = (actualStart: any, start: any, plannedStart: any, actualEnd: any, end: any, plannedEnd: any) => {
+    let startDate = getValidDate(actualStart, start, plannedStart);
+    let endDate = getValidDate(actualEnd, end, plannedEnd);
     
     // Ensure end is strictly after start for Gantt chart component to work properly
-    if (end.getTime() <= start.getTime()) {
-      end = new Date(start.getTime());
-      end.setDate(end.getDate() + 1);
+    if (endDate.getTime() <= startDate.getTime()) {
+      endDate = new Date(startDate.getTime());
+      endDate.setDate(endDate.getDate() + 1);
     }
     
-    return { start, end };
+    return { start: startDate, end: endDate };
   };
 
   const fetchData = async () => {
@@ -124,16 +131,14 @@ export default function GanttChart() {
 
       projects.forEach((p) => {
         const pTasks = tasksData.filter(t => t.project_id === p.id);
-        const internalTasks = pTasks.filter(t => t.type !== 'Team');
-        const externalTasks = pTasks.filter(t => t.type === 'Team');
-
-        const hasInternal = internalTasks.length > 0 || pTasks.length === 0;
-        const hasExternal = externalTasks.length > 0 || pTasks.length === 0;
+        
+        const isExternalProject = p.type === 'External project';
+        const isInternalProject = !isExternalProject;
 
         const isProjectActual = !!(p.actual_start_date || p.actual_end_date);
         const { start: pStart, end: pEnd } = getSafeDates(
-          p.actual_start_date || p.planned_start_date || p.start_date, 
-          p.actual_end_date || p.planned_end_date || p.end_date
+          p.actual_start_date, p.start_date, p.planned_start_date, 
+          p.actual_end_date, p.end_date, p.planned_end_date
         );
 
         const projectTask: Task = {
@@ -149,33 +154,25 @@ export default function GanttChart() {
             progressColor: isProjectActual ? '#1e3a8a' : '#3b82f6', 
             progressSelectedColor: isProjectActual ? '#1e3a8a' : '#2563eb',
             backgroundColor: isProjectActual ? '#1e40af' : undefined
-          }
-        };
+          },
+          statusStr: p.status
+        } as any;
 
-        if (hasExternal) formattedTasks.push(projectTask);
-        if (hasInternal) individualTasks.push(projectTask);
+        if (isExternalProject) formattedTasks.push(projectTask);
+        if (isInternalProject) individualTasks.push(projectTask);
 
         const pMilestones = milestones.filter(m => m.project_id === p.id);
         pMilestones.forEach(m => {
-          const mTasks = pTasks.filter(t => t.milestone_id === m.id);
-          const mInternalTasks = mTasks.filter(t => t.type !== 'Team');
-          const mExternalTasks = mTasks.filter(t => t.type === 'Team');
-
-          const mHasInternal = mInternalTasks.length > 0 || mTasks.length === 0;
-          const mHasExternal = mExternalTasks.length > 0 || mTasks.length === 0;
-
-          if (!mHasInternal && !mHasExternal) return; // Should not happen based on logic above, but safe
-
           const isMilestoneActual = !!(m.actual_start_date || m.actual_end_date);
           const { start: mStart, end: mEnd } = getSafeDates(
-            m.actual_start_date || m.planned_start_date || m.start_date, 
-            m.actual_end_date || m.planned_end_date || m.end_date
+            m.actual_start_date, m.start_date, m.planned_start_date, 
+            m.actual_end_date, m.end_date, m.planned_end_date
           );
 
           const milestoneTask: Task = {
              id: `m-${m.id}`,
              name: m.name,
-             type: 'milestone',
+             type: 'project',
              start: mStart,
              end: mEnd,
              progress: getProgress(m.status),
@@ -186,18 +183,19 @@ export default function GanttChart() {
                progressSelectedColor: isMilestoneActual ? '#713f12' : '#ca8a04',
                backgroundColor: isMilestoneActual ? '#a16207' : undefined
              },
-             project: `p-${p.id}`
-          };
+             project: `p-${p.id}`,
+             statusStr: m.status
+          } as any;
 
-          if (hasExternal && mHasExternal) formattedTasks.push(milestoneTask);
-          if (hasInternal && mHasInternal) individualTasks.push(milestoneTask);
+          if (isExternalProject) formattedTasks.push(milestoneTask);
+          if (isInternalProject) individualTasks.push(milestoneTask);
         });
 
         pTasks.forEach(t => {
           const isTaskActual = !!(t.actual_start_date || t.actual_end_date);
           const { start: tStart, end: tEnd } = getSafeDates(
-            t.actual_start_date || t.planned_start_date || t.start_date, 
-            t.actual_end_date || t.planned_end_date || t.end_date
+            t.actual_start_date, t.start_date, t.planned_start_date, 
+            t.actual_end_date, t.end_date, t.planned_end_date
           );
 
           const taskObj: Task = {
@@ -213,14 +211,12 @@ export default function GanttChart() {
                progressSelectedColor: isTaskActual ? '#14532d' : '#16a34a',
                backgroundColor: isTaskActual ? '#166534' : undefined
              },
-             project: t.milestone_id ? `m-${t.milestone_id}` : `p-${p.id}`
-          };
+             project: t.milestone_id ? `m-${t.milestone_id}` : `p-${p.id}`,
+             statusStr: t.status
+          } as any;
           
-          if (t.type === 'Team') {
-            if (hasExternal) formattedTasks.push(taskObj);
-          } else {
-            if (hasInternal) individualTasks.push(taskObj);
-          }
+          if (isExternalProject) formattedTasks.push(taskObj);
+          if (isInternalProject) individualTasks.push(taskObj);
         });
       });
       
@@ -229,9 +225,6 @@ export default function GanttChart() {
       // but the library handles it. We just store the two arrays.
       setTasks(activeTab === 'team' ? formattedTasks : individualTasks);
       
-      // Store both so we don't have to refetch on tab switch
-      // We can use a trick: save raw arrays or just refetch. Since it's fast, we can just refetch on tab change.
-      // But better to save raw data in state:
     } catch (error) {
       console.error('Error fetching Gantt data', error);
     } finally {
@@ -257,6 +250,42 @@ export default function GanttChart() {
     setTasks(tasks.map(t => (t.id === task.id ? task : t)));
   };
 
+  const handleDateChange = async (task: Task) => {
+    try {
+      // task.id is 'p-uuid', 'm-uuid', or 't-uuid'
+      const idPrefix = task.id.substring(0, 2);
+      const uuid = task.id.substring(2);
+      
+      const startDateStr = task.start.toISOString().split('T')[0];
+      const endDateStr = task.end.toISOString().split('T')[0];
+      
+      let table = '';
+      if (idPrefix === 'p-') table = 'projects';
+      else if (idPrefix === 'm-') table = 'milestones';
+      else if (idPrefix === 't-') table = 'tasks';
+      
+      if (table) {
+         // Optimistically update the UI
+         setTasks(tasks.map(t => (t.id === task.id ? task : t)));
+         
+         const { error } = await supabase.from(table).update({
+           start_date: startDateStr,
+           end_date: endDateStr,
+           planned_start_date: startDateStr,
+           planned_end_date: endDateStr
+         }).eq('id', uuid);
+         
+         if (error) {
+            console.error('Error updating task in db:', error);
+            fetchData(); // revert
+         }
+      }
+    } catch (err) {
+      console.error(err);
+      fetchData(); // revert
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center border-b pb-4">
@@ -277,22 +306,60 @@ export default function GanttChart() {
           </button>
         </div>
         
-        <div className="flex gap-2">
-          <button className={`btn btn-sm ${viewMode === ViewMode.Day ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Day)}>Day</button>
-          <button className={`btn btn-sm ${viewMode === ViewMode.Week ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Week)}>Week</button>
-          <button className={`btn btn-sm ${viewMode === ViewMode.Month ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Month)}>Month</button>
+        <div className="flex items-center gap-4">
+          <div className="w-64 relative">
+             <input 
+               type="text" 
+               className="input w-full" 
+               placeholder="Search projects..." 
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               style={{ paddingLeft: '1rem', height: '32px' }}
+             />
+          </div>
+
+          <div className="flex gap-2">
+            <button className={`btn btn-sm ${viewMode === ViewMode.Day ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Day)}>Day</button>
+            <button className={`btn btn-sm ${viewMode === ViewMode.Week ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Week)}>Week</button>
+            <button className={`btn btn-sm ${viewMode === ViewMode.Month ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Month)}>Month</button>
+          </div>
         </div>
       </div>
 
       <div className="card p-4 overflow-hidden">
         {loading ? (
            <div className="p-8 text-center text-muted-foreground">Loading Professional Gantt Chart...</div>
-        ) : tasks.length > 0 ? (
+        ) : tasks.length > 0 ? (() => {
+          
+          let filteredTasks = tasks;
+          if (searchQuery.trim() !== '') {
+             const lowerQuery = searchQuery.toLowerCase();
+             const matchingProjectIds = new Set(tasks.filter(t => t.id.startsWith('p-') && t.name.toLowerCase().includes(lowerQuery)).map(t => t.id));
+             filteredTasks = tasks.filter(t => {
+                 if (t.id.startsWith('p-')) return matchingProjectIds.has(t.id);
+                 if (t.id.startsWith('m-')) return matchingProjectIds.has(t.project || '');
+                 if (t.id.startsWith('t-')) {
+                     if ((t.project || '').startsWith('p-')) return matchingProjectIds.has(t.project || '');
+                     if ((t.project || '').startsWith('m-')) {
+                         const parentMilestone = tasks.find(m => m.id === t.project);
+                         return parentMilestone && matchingProjectIds.has(parentMilestone.project || '');
+                     }
+                 }
+                 return false;
+             });
+          }
+
+          if (filteredTasks.length === 0) {
+             return <div className="p-8 text-center text-muted-foreground">No projects match your search.</div>;
+          }
+
+          return (
           <div style={{ overflowX: 'auto' }}>
             <Gantt 
-              tasks={tasks} 
+              tasks={filteredTasks} 
               viewMode={viewMode}
               onExpanderClick={handleExpanderClick}
+              onDateChange={handleDateChange}
               listCellWidth="390px"
               columnWidth={viewMode === ViewMode.Month ? 150 : viewMode === ViewMode.Week ? 100 : 60}
               TaskListHeader={CustomTaskListHeader}
@@ -300,7 +367,8 @@ export default function GanttChart() {
               TooltipContent={CustomTooltip}
             />
           </div>
-        ) : (
+          );
+        })() : (
            <div className="p-8 text-center text-muted-foreground">No data available to display in Gantt Chart. Add a project to get started.</div>
         )}
       </div>

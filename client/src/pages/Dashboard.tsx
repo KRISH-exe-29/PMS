@@ -28,13 +28,32 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [projectsRes, milestonesRes, tasksRes] = await Promise.all([
-        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+      const { data: projectsData, error: projectsError } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+      if (projectsError) throw projectsError;
+
+      const { data: billingsData, error: billingsError } = await supabase.from('billings').select('project_id, invoice_amount');
+      if (billingsError) throw billingsError;
+
+      const billingSums: Record<string, number> = {};
+      if (billingsData) {
+        billingsData.forEach((b: any) => {
+          if (b.project_id) {
+            billingSums[b.project_id] = (billingSums[b.project_id] || 0) + (Number(b.invoice_amount) || 0);
+          }
+        });
+      }
+
+      const formattedProjects = projectsData?.map(p => ({
+        ...p,
+        actual_cost: billingSums[p.id] || 0
+      })) || [];
+
+      const [milestonesRes, tasksRes] = await Promise.all([
         supabase.from('milestones').select('*'),
         supabase.from('tasks').select('*')
       ]);
 
-      setProjects(projectsRes.data || []);
+      setProjects(formattedProjects);
       setMilestones(milestonesRes.data || []);
       setTasks(tasksRes.data || []);
     } catch (error) {

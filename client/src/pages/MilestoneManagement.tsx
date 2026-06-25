@@ -8,6 +8,7 @@ interface Milestone {
   id: string;
   projectId: string;
   projectName: string;
+  projectCode?: string;
   name: string;
   startDate: string;
   endDate: string;
@@ -42,20 +43,21 @@ export default function MilestoneManagement() {
   }, []);
 
   const fetchProjects = async () => {
-    const { data } = await supabase.from('projects').select('id, name');
+    const { data } = await supabase.from('projects').select('id, name, start_date, end_date');
     if (data) setProjects(data);
   };
 
   const fetchMilestones = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('milestones').select('*, projects(name)').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('milestones').select('*, projects(name, code)').order('created_at', { ascending: false });
       if (error) throw error;
 
       const formatted = data?.map(m => ({
         id: m.id,
         projectId: m.project_id,
         projectName: m.projects?.name || 'Unknown',
+        projectCode: m.projects?.code || '-',
         name: m.name,
         startDate: m.start_date,
         endDate: m.end_date,
@@ -80,6 +82,7 @@ export default function MilestoneManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentMilestone, setCurrentMilestone] = useState<Partial<Milestone>>({ status: 'Not Started' });
+  const [selectedMilestones, setSelectedMilestones] = useState<string[]>([]);
 
   const filteredMilestones = milestones.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -131,6 +134,31 @@ export default function MilestoneManagement() {
       if (currentMilestone.id) {
         const { error } = await supabase.from('milestones').update(dbMilestone).eq('id', currentMilestone.id);
         if (error) throw error;
+        
+        // Cascade constraint to tasks
+        const { data: tasks } = await supabase.from('tasks').select('*').eq('milestone_id', currentMilestone.id);
+        if (tasks && tasks.length > 0) {
+           for (const t of tasks) {
+              let updated = false;
+              let tStart = t.start_date;
+              let tEnd = t.end_date;
+              if (new Date(tStart as string) < new Date(dbMilestone.start_date as string) || new Date(tStart as string) > new Date(dbMilestone.end_date as string)) {
+                 tStart = dbMilestone.start_date as string;
+                 updated = true;
+              }
+              if (new Date(tEnd as string) > new Date(dbMilestone.end_date as string) || new Date(tEnd as string) < new Date(dbMilestone.start_date as string)) {
+                 tEnd = dbMilestone.end_date as string;
+                 updated = true;
+              }
+              if (new Date(tStart as string) > new Date(tEnd as string)) {
+                 tEnd = tStart;
+                 updated = true;
+              }
+              if (updated) {
+                 await supabase.from('tasks').update({ start_date: tStart, end_date: tEnd, planned_start_date: tStart, planned_end_date: tEnd }).eq('id', t.id);
+              }
+           }
+        }
       } else {
         const { data: newMilestone, error } = await supabase.from('milestones').insert([dbMilestone]).select().single();
         if (error) throw error;
@@ -183,6 +211,20 @@ export default function MilestoneManagement() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (confirm(`Are you sure you want to delete ${selectedMilestones.length} milestone(s)?`)) {
+      try {
+        const { error } = await supabase.from('milestones').delete().in('id', selectedMilestones);
+        if (error) throw error;
+        setSelectedMilestones([]);
+        fetchMilestones();
+      } catch (error: any) {
+        console.error('Error deleting milestones:', error);
+        alert('Failed to delete selected milestones');
+      }
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -197,20 +239,47 @@ export default function MilestoneManagement() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={() => { setCurrentMilestone({ status: 'Not Started' }); setIsModalOpen(true); }}
-        >
-          <Plus size={18} style={{ marginRight: '0.5rem' }} />
-          Add Milestone
-        </button>
+        <div className="flex gap-4 items-center" style={{ marginLeft: 'auto' }}>
+          {selectedMilestones.length > 0 && (
+            <button 
+              className="btn btn-outline"
+              style={{ color: 'var(--destructive)', borderColor: 'var(--destructive)', padding: '0.5rem 1rem' }}
+              onClick={handleBulkDelete}
+            >
+              <Trash2 size={18} style={{ marginRight: '0.5rem' }} />
+              Delete Selected ({selectedMilestones.length})
+            </button>
+          )}
+          <button 
+            className="btn btn-primary"
+            onClick={() => { setCurrentMilestone({ status: 'Not Started' }); setIsModalOpen(true); }}
+          >
+            <Plus size={18} style={{ marginRight: '0.5rem' }} />
+            Add Milestone
+          </button>
+        </div>
       </div>
 
       <div className="table-container">
         <table className="data-table">
           <thead>
             <tr>
+              <th style={{ width: '40px', textAlign: 'center' }}>
+                <input 
+                  type="checkbox" 
+                  checked={selectedMilestones.length > 0 && selectedMilestones.length === filteredMilestones.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedMilestones(filteredMilestones.map(m => m.id));
+                    } else {
+                      setSelectedMilestones([]);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                />
+              </th>
               <th>Project Name</th>
+              <th>Project Code</th>
               <th>Milestone Name</th>
               <th>Start Date</th>
               <th>Target Date</th>
@@ -221,7 +290,22 @@ export default function MilestoneManagement() {
           <tbody>
             {filteredMilestones.map(milestone => (
               <tr key={milestone.id}>
+                <td style={{ textAlign: 'center' }}>
+                  <input 
+                    type="checkbox"
+                    checked={selectedMilestones.includes(milestone.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedMilestones([...selectedMilestones, milestone.id]);
+                      } else {
+                        setSelectedMilestones(selectedMilestones.filter(id => id !== milestone.id));
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </td>
                 <td>{milestone.projectName}</td>
+                <td>{milestone.projectCode}</td>
                 <td className="font-medium">{milestone.name}</td>
                 <td>{milestone.startDate}</td>
                 <td>{milestone.endDate}</td>
@@ -258,12 +342,12 @@ export default function MilestoneManagement() {
             ))}
             {loading && (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Loading milestones...</td>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Loading milestones...</td>
               </tr>
             )}
             {!loading && filteredMilestones.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
+                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
                   No milestones found.
                 </td>
               </tr>
@@ -290,7 +374,13 @@ export default function MilestoneManagement() {
                   value={currentMilestone.projectId || ''}
                   onChange={e => {
                     const proj = projects.find(p => p.id === e.target.value);
-                    setCurrentMilestone({...currentMilestone, projectId: e.target.value, projectName: proj?.name});
+                    setCurrentMilestone({
+                      ...currentMilestone, 
+                      projectId: e.target.value, 
+                      projectName: proj?.name,
+                      startDate: currentMilestone.startDate || (proj as any)?.start_date,
+                      endDate: currentMilestone.endDate || (proj as any)?.end_date
+                    });
                   }}
                 >
                   <option value="">Select Project</option>

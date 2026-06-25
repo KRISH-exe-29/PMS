@@ -4,12 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 const Logo = () => (
-  <svg width="220" height="60" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="150" height="40" rx="4" fill="#e3282f" />
-    <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="20" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">
-      INDO TECH
-    </text>
-  </svg>
+  <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+    <img 
+      src="/logo.svg" 
+      alt="INDO TECH" 
+      style={{ 
+        height: '60px', 
+        width: 'auto', 
+        objectFit: 'contain',
+        margin: '0 auto'
+      }} 
+      onError={() => {
+        console.warn("Logo image not found in public folder. Please save logo.svg to client/public/");
+      }}
+    />
+  </div>
 );
 
 export default function Login() {

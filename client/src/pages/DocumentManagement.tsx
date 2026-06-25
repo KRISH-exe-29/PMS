@@ -6,6 +6,7 @@ interface Document {
   id: string;
   projectId: string;
   projectName: string;
+  projectCode?: string;
   milestoneId?: string;
   milestoneName?: string;
   remarks?: string;
@@ -47,13 +48,14 @@ export default function DocumentManagement() {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('documents').select('*, projects(name), milestones(name)').order('upload_date', { ascending: false });
+      const { data, error } = await supabase.from('documents').select('*, projects(name, code), milestones(name)').order('upload_date', { ascending: false });
       if (error) throw error;
 
       const formatted = data?.map(d => ({
         id: d.id,
         projectId: d.project_id,
         projectName: d.projects?.name || 'Unknown',
+        projectCode: d.projects?.code || '-',
         milestoneId: d.milestone_id,
         milestoneName: d.milestones?.name || '-',
         remarks: d.remarks || '-',
@@ -85,10 +87,11 @@ export default function DocumentManagement() {
   );
 
   const groupedDocs = filteredDocuments.reduce((acc: any, doc) => {
-    if (!acc[doc.projectName]) acc[doc.projectName] = {};
+    const pTitle = `${doc.projectCode} - ${doc.projectName}`;
+    if (!acc[pTitle]) acc[pTitle] = {};
     const msName = doc.milestoneName || 'General';
-    if (!acc[doc.projectName][msName]) acc[doc.projectName][msName] = [];
-    acc[doc.projectName][msName].push(doc);
+    if (!acc[pTitle][msName]) acc[pTitle][msName] = [];
+    acc[pTitle][msName].push(doc);
     return acc;
   }, {});
 

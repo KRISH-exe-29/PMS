@@ -9,6 +9,7 @@ interface Task {
   id: string;
   projectId: string;
   projectName: string;
+  projectCode?: string;
   milestoneId?: string;
   milestoneName?: string;
   title: string;
@@ -60,20 +61,21 @@ export default function TaskManagement() {
   };
 
   const fetchMilestones = async () => {
-    const { data } = await supabase.from('milestones').select('id, name, project_id');
+    const { data } = await supabase.from('milestones').select('id, project_id, name, start_date, end_date');
     if (data) setMilestones(data);
   };
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('tasks').select('*, projects(name), milestones(name)').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('tasks').select('*, projects(name, code), milestones(name)').order('created_at', { ascending: false });
       if (error) throw error;
 
       const formatted = data?.map(t => ({
         id: t.id,
         projectId: t.project_id,
         projectName: t.projects?.name || 'Unknown',
+        projectCode: t.projects?.code || '-',
         milestoneId: t.milestone_id,
         milestoneName: t.milestones?.name || 'None',
         title: t.title,
@@ -279,24 +281,31 @@ export default function TaskManagement() {
         <table className="data-table">
           <thead>
             <tr>
+              <th>Project Code</th>
+              <th>Project Name</th>
+              <th>Milestone</th>
               <th>Type</th>
-              <th>Project</th>
               <th>Assigned To</th>
               <th>Task Title</th>
-              <th>Document</th>
               <th>Start Date</th>
               <th>End Date</th>
               <th>Status</th>
+              <th>Document</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTasks.map(task => (
               <tr key={task.id}>
-                <td><span className="badge badge-secondary">{task.type === 'Individual' ? 'Internal Team' : 'External Team'}</span></td>
+                <td className="font-medium">{task.projectCode}</td>
                 <td>{task.projectName}</td>
+                <td>{task.milestoneName}</td>
+                <td><span className="badge badge-secondary">{task.type === 'Individual' ? 'Internal Team' : 'External Team'}</span></td>
                 <td>{task.assignedTo}</td>
                 <td className="font-medium">{task.title}</td>
+                <td>{task.startDate}</td>
+                <td>{task.endDate}</td>
+                <td>{getStatusBadge(task.status, task.id)}</td>
                 <td>
                   {task.documentUrl ? (
                     <div 
@@ -321,9 +330,6 @@ export default function TaskManagement() {
                     <span className="text-muted">-</span>
                   )}
                 </td>
-                <td>{task.startDate}</td>
-                <td>{task.endDate}</td>
-                <td>{getStatusBadge(task.status, task.id)}</td>
                 <td>
                   <div className="flex gap-2">
                     <button 
@@ -406,7 +412,15 @@ export default function TaskManagement() {
                     required
                     className="form-input"
                     value={currentTask.milestoneId || ''}
-                    onChange={e => setCurrentTask({...currentTask, milestoneId: e.target.value})}
+                    onChange={e => {
+                      const ms = milestones.find(m => m.id === e.target.value);
+                      setCurrentTask({
+                        ...currentTask, 
+                        milestoneId: e.target.value,
+                        startDate: (ms as any)?.start_date || (ms as any)?.startDate || currentTask.startDate,
+                        endDate: (ms as any)?.end_date || (ms as any)?.endDate || currentTask.endDate
+                      });
+                    }}
                   >
                     <option value="">Select Milestone</option>
                     {milestones.filter(m => m.project_id === currentTask.projectId).map(m => (

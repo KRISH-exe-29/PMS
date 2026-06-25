@@ -23,16 +23,29 @@ export default function BudgetManagement() {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
+      const { data: projectsData, error: projectsError } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+      if (projectsError) throw projectsError;
+
+      const { data: billingsData, error: billingsError } = await supabase.from('billings').select('project_id, invoice_amount');
+      if (billingsError) throw billingsError;
+
+      // Group billings by project_id
+      const billingSums: Record<string, number> = {};
+      if (billingsData) {
+        billingsData.forEach((b: any) => {
+          if (b.project_id) {
+            billingSums[b.project_id] = (billingSums[b.project_id] || 0) + (Number(b.invoice_amount) || 0);
+          }
+        });
+      }
       
-      const formattedProjects = data?.map(p => ({
+      const formattedProjects = projectsData?.map(p => ({
         id: p.id,
         name: p.name,
         code: p.code,
         status: p.status,
         budget: p.budget,
-        actualCost: p.actual_cost,
+        actualCost: billingSums[p.id] || 0, // Force UI to use Billing sum
         endDate: p.end_date
       })) || [];
       
@@ -54,13 +67,14 @@ export default function BudgetManagement() {
   const handleUpdateCost = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('projects').update({ actual_cost: currentProject.actualCost }).eq('id', currentProject.id);
+      // We only update the budget here now, because actual_cost is auto-calculated from billing
+      const { error } = await supabase.from('projects').update({ budget: currentProject.budget }).eq('id', currentProject.id);
       if (error) throw error;
       fetchProjects(); // Refresh the list from the database
       setIsEditModalOpen(false);
     } catch (err) {
-      console.error('Error updating actual cost:', err);
-      alert('Failed to update cost in the database');
+      console.error('Error updating budget:', err);
+      alert('Failed to update budget in the database');
     }
   };
 
@@ -145,8 +159,10 @@ export default function BudgetManagement() {
           <thead>
             <tr>
               <th>Project Name</th>
+              <th>Project Code</th>
               <th style={{ textAlign: 'right' }}>Planned Budget</th>
               <th style={{ textAlign: 'right' }}>Actual Cost</th>
+              <th style={{ textAlign: 'right' }}>Balanced Cost</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -155,8 +171,12 @@ export default function BudgetManagement() {
             {filteredProjects.map(project => (
               <tr key={project.id}>
                 <td className="font-medium">{project.name}</td>
+                <td>{project.code}</td>
                 <td style={{ textAlign: 'right' }}>₹ {(Number(project.budget) || 0).toLocaleString('en-IN')}</td>
                 <td style={{ textAlign: 'right' }}>₹ {(Number(project.actualCost) || 0).toLocaleString('en-IN')}</td>
+                <td style={{ textAlign: 'right', color: ((Number(project.budget) || 0) - (Number(project.actualCost) || 0)) < 0 ? '#dc2626' : 'inherit' }}>
+                  ₹ {((Number(project.budget) || 0) - (Number(project.actualCost) || 0)).toLocaleString('en-IN')}
+                </td>
                 <td>{getStatusBadge(project.status)}</td>
                 <td>
                   <div className="flex gap-2">
@@ -223,11 +243,19 @@ export default function BudgetManagement() {
               <div className="flex gap-4">
                 <div className="flex-1">
                   <label className="form-label">Planned Budget</label>
-                  <input type="number" className="form-input" value={currentProject.budget || ''} onChange={e => setCurrentProject({...currentProject, budget: e.target.value})} />
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={currentProject.budget !== undefined ? currentProject.budget : ''} 
+                    onChange={e => {
+                      const val = e.target.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+                      setCurrentProject({...currentProject, budget: val ? Number(val) : 0})
+                    }} 
+                  />
                 </div>
                 <div className="flex-1">
                   <label className="form-label">Actual Cost</label>
-                  <input type="number" className="form-input" value={currentProject.actualCost || ''} onChange={e => setCurrentProject({...currentProject, actualCost: e.target.value})} required autoFocus />
+                  <input type="text" className="form-input" value={currentProject.actualCost || '0'} disabled title="Actual cost is automatically calculated from Billing invoices" style={{ backgroundColor: '#f1f5f9', color: '#64748b' }} />
                 </div>
               </div>
               <div className="flex gap-4 mt-4">

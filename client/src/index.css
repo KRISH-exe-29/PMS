@@ -2,23 +2,23 @@
 
 :root {
   --background: #f8fafc;
-  --foreground: #0f172a;
+  --foreground: #1e1b4b; /* Deep navy text for calm, premium feel */
   
-  --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card: rgba(255, 255, 255, 0.35); /* Glass card background */
+  --card-foreground: #1e1b4b;
   
-  --primary: #3b82f6;
+  --primary: #2563eb; /* Vivid blue accent */
   --primary-foreground: #ffffff;
-  --primary-hover: #2563eb;
+  --primary-hover: #1d4ed8;
   
-  --secondary: #f1f5f9;
-  --secondary-foreground: #1e293b;
+  --secondary: rgba(255, 255, 255, 0.3); /* Glassy secondary */
+  --secondary-foreground: #1e1b4b;
   
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted: rgba(255, 255, 255, 0.4);
+  --muted-foreground: #475569; /* Softened near-black */
   
-  --accent: #e2e8f0;
-  --accent-foreground: #0f172a;
+  --accent: #6D28D9; /* Deep purple */
+  --accent-foreground: #ffffff;
   
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
@@ -29,20 +29,20 @@
   --warning: #f59e0b;
   --warning-foreground: #ffffff;
   
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: rgba(59, 130, 246, 0.5);
+  --border: rgba(255, 255, 255, 0.4); /* Reflected light simulation */
+  --input: rgba(255, 255, 255, 0.5);
+  --ring: rgba(37, 99, 235, 0.5);
   
-  --radius: 1rem; /* Softer, larger radius for Magic UI */
+  --radius: 20px; /* Soft rounded geometry */
   
   --sidebar-width: 280px;
-  --header-height: 72px;
+  --header-height: 80px;
   
-  /* Magic UI Soft Shadows */
-  --shadow-sm: 0 2px 8px -2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 8px 24px -4px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 20px 40px -8px rgba(15, 23, 42, 0.08);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
+  /* Soft, diffused ambient shadows */
+  --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 8px 24px rgba(37, 99, 235, 0.25);
 }
 
 * {
@@ -54,11 +54,13 @@
 body {
   font-family: 'Inter', sans-serif;
   color: var(--foreground);
+  line-height: 1.6; /* Airy line-height */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(-45deg, #f8fafc, #eff6ff, #fdf4ff, #f0fdf4);
+  /* Soft luminous atmospheric gradient */
+  background: linear-gradient(135deg, #c7d2fe 0%, #fde8ff 50%, #e0e7ff 100%);
   background-size: 400% 400%;
-  animation: gradientBG 20s ease infinite;
+  animation: gradientBG 25s ease-in-out infinite;
   min-height: 100vh;
 }
 
@@ -91,23 +93,24 @@ input, select, textarea {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 /* Glassmorphism Classes */
 .glass {
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.25);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: var(--shadow-md);
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   border-radius: var(--radius);
 }
 
@@ -162,17 +165,19 @@ input, select, textarea {
 
 /* Components */
 .card {
-  background-color: var(--card);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   color: var(--card-foreground);
   border-radius: var(--radius);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   padding: 1.5rem;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.24s ease;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   transform: translateY(-2px);
 }
 
@@ -180,9 +185,9 @@ input, select, textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
+  border-radius: 12px;
   font-weight: 600;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
   padding: 0.6rem 1.25rem;
   font-size: 0.875rem;
   box-shadow: var(--shadow-sm);
@@ -198,12 +203,13 @@ input, select, textarea {
   background-color: var(--primary);
   color: var(--primary-foreground);
   border: 1px solid transparent;
+  box-shadow: var(--shadow-glow);
 }
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.35);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -211,27 +217,31 @@ input, select, textarea {
 }
 
 .btn-secondary {
-  background-color: var(--secondary);
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: var(--secondary-foreground);
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 16px rgba(0,0,0,0.05);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--accent);
+  background: rgba(255, 255, 255, 0.5);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 8px 24px rgba(0,0,0,0.08);
 }
 
 .btn-outline {
-  border: 1px solid var(--border);
-  background-color: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--foreground);
 }
 
 .btn-outline:hover:not(:disabled) {
-  background-color: var(--secondary);
-  border-color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.6);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -239,7 +249,7 @@ input, select, textarea {
 .btn-sm {
   padding: 0.4rem 0.8rem;
   font-size: 0.8125rem;
-  border-radius: 0.5rem;
+  border-radius: 10px;
 }
 
 .btn-destructive {
@@ -250,7 +260,7 @@ input, select, textarea {
 .btn-destructive:hover:not(:disabled) {
   background-color: #dc2626;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
 }
 
 .form-group {
@@ -269,31 +279,35 @@ input, select, textarea {
 
 .form-input, .form-select {
   padding: 0.65rem 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--input);
-  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   font-size: 0.9375rem;
   transition: all 0.2s ease;
   width: 100%;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: var(--foreground);
 }
 
 .form-input:focus, .form-select:focus {
   outline: none;
-  border-color: var(--primary);
-  background-color: #ffffff;
-  box-shadow: 0 0 0 3px var(--ring);
+  border-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 /* Beautiful Modern Tables */
 .table-container {
   width: 100%;
   overflow-x: auto;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: var(--radius);
-  background-color: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-sm);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .data-table {
@@ -308,8 +322,8 @@ input, select, textarea {
   padding: 1.25rem 1rem;
   font-weight: 600;
   color: var(--muted-foreground);
-  background-color: rgba(248, 250, 252, 0.8);
-  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   letter-spacing: -0.01em;
   text-transform: uppercase;
   font-size: 0.75rem;
@@ -317,7 +331,7 @@ input, select, textarea {
 
 .data-table td {
   padding: 1.25rem 1rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--foreground);
   transition: background-color 0.2s ease;
 }
@@ -331,9 +345,9 @@ input, select, textarea {
 }
 
 .data-table tbody tr:hover {
-  background-color: #ffffff;
-  transform: scale(1.001);
-  box-shadow: 0 0 10px rgba(0,0,0,0.02);
+  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   z-index: 10;
   position: relative;
 }
@@ -362,33 +376,34 @@ input, select, textarea {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .modal-content {
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255,255,255,0.6);
-  border-radius: 1.25rem;
-  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.05);
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.8);
   width: 100%;
   max-width: 550px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 2rem;
-  animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modalSlideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @keyframes modalSlideUp {
-  from { opacity: 0; transform: scale(0.95) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .page-header {

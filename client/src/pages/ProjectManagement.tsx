@@ -106,34 +106,65 @@ export default function ProjectManagement() {
         // Update existing
         const { error } = await supabase.from('projects').update(dbProject).eq('id', currentProject.id);
         if (error) throw error;
+        
+        // Cascade constraints to milestones
+        const { data: milestones } = await supabase.from('milestones').select('*').eq('project_id', currentProject.id);
+        if (milestones && milestones.length > 0) {
+           for (const m of milestones) {
+              let updated = false;
+              let mStart = m.start_date;
+              let mEnd = m.end_date;
+              
+              if (new Date(mStart as string) < new Date(dbProject.start_date as string) || new Date(mStart as string) > new Date(dbProject.end_date as string)) {
+                 mStart = dbProject.start_date as string;
+                 updated = true;
+              }
+              if (new Date(mEnd as string) > new Date(dbProject.end_date as string) || new Date(mEnd as string) < new Date(dbProject.start_date as string)) {
+                 mEnd = dbProject.end_date as string;
+                 updated = true;
+              }
+              
+              if (new Date(mStart as string) > new Date(mEnd as string)) {
+                 mEnd = mStart;
+                 updated = true;
+              }
+              
+              if (updated) {
+                 await supabase.from('milestones').update({ start_date: mStart, end_date: mEnd, planned_start_date: mStart, planned_end_date: mEnd }).eq('id', m.id);
+                 
+                 // Also cascade from milestone to tasks
+                 const { data: tasks } = await supabase.from('tasks').select('*').eq('milestone_id', m.id);
+                 if (tasks && tasks.length > 0) {
+                    for (const t of tasks) {
+                       let tUpdated = false;
+                       let tStart = t.start_date;
+                       let tEnd = t.end_date;
+                       if (new Date(tStart as string) < new Date(mStart as string) || new Date(tStart as string) > new Date(mEnd as string)) { tStart = mStart as string; tUpdated = true; }
+                       if (new Date(tEnd as string) > new Date(mEnd as string) || new Date(tEnd as string) < new Date(mStart as string)) { tEnd = mEnd as string; tUpdated = true; }
+                       if (new Date(tStart as string) > new Date(tEnd as string)) { tEnd = tStart; tUpdated = true; }
+                       if (tUpdated) {
+                          await supabase.from('tasks').update({ start_date: tStart, end_date: tEnd, planned_start_date: tStart, planned_end_date: tEnd }).eq('id', t.id);
+                       }
+                    }
+                 }
+              }
+           }
+        }
+         
+         // Re-apply the manually entered budget to override the database trigger
+         if (currentProject.budget !== undefined) {
+            await supabase.from('projects').update({ budget: Number(currentProject.budget) }).eq('id', currentProject.id);
+         }
       } else {
         // Insert new
         const { data: newProject, error } = await supabase.from('projects').insert([dbProject]).select().single();
         if (error) throw error;
         
-        // Auto-create standard milestones
+        // Auto-create standard milestones removed as per user request
         if (newProject) {
-          const standardMilestones = [
-            'Requirement Gathering',
-            'Scope of Work',
-            'Solution Finalization',
-            'Development',
-            'UAT',
-            'Deployment',
-            'Go Live'
-          ].map((name) => ({
-            project_id: newProject.id,
-            name,
-            start_date: newProject.start_date,
-            end_date: newProject.end_date,
-            planned_start_date: newProject.planned_start_date || newProject.start_date,
-            planned_end_date: newProject.planned_end_date || newProject.end_date,
-            status: 'Not Started'
-          }));
-          
-          const { error: milestoneError } = await supabase.from('milestones').insert(standardMilestones);
-          if (milestoneError) {
-            console.error('Error creating standard milestones:', milestoneError);
+          // Re-apply the manually entered budget to override the database trigger
+          if (currentProject.budget !== undefined) {
+            await supabase.from('projects').update({ budget: Number(currentProject.budget) }).eq('id', newProject.id);
           }
         }
       }
@@ -225,12 +256,12 @@ export default function ProjectManagement() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Project Name</th>
               <th>Project Code</th>
+              <th>Project Name</th>
+              <th>Budget</th>
               <th>Type</th>
               <th>Start Date</th>
               <th>End Date</th>
-              <th>Budget</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -238,8 +269,9 @@ export default function ProjectManagement() {
           <tbody>
             {filteredProjects.map(project => (
               <tr key={project.id}>
-                <td className="font-medium">{project.name}</td>
-                <td>{project.code}</td>
+                <td className="font-medium">{project.code}</td>
+                <td>{project.name}</td>
+                <td>₹ {project.budget.toLocaleString('en-IN')}</td>
                 <td>
                   <span className={`badge ${project.type === 'External project' ? 'badge-secondary' : 'badge-primary'}`}>
                     {project.type || 'Internal project'}
@@ -247,7 +279,6 @@ export default function ProjectManagement() {
                 </td>
                 <td>{project.startDate}</td>
                 <td>{project.endDate}</td>
-                <td>₹ {project.budget.toLocaleString('en-IN')}</td>
                 <td>{getStatusBadge(project.status, project.id)}</td>
                 <td>
                   <div className="flex gap-2">
@@ -373,10 +404,14 @@ export default function ProjectManagement() {
                   <label className="form-label">Budget ($)</label>
                   <input 
                     required 
-                    type="number" 
+                    type="text" 
                     className="form-input" 
-                    value={currentProject.budget || ''} 
-                    onChange={e => setCurrentProject({...currentProject, budget: Number(e.target.value)})} 
+                    value={currentProject.budget !== undefined ? currentProject.budget : ''} 
+                    onChange={e => {
+                      // Remove commas and non-numeric characters except decimal point
+                      const val = e.target.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+                      setCurrentProject({...currentProject, budget: val ? Number(val) : 0});
+                    }} 
                   />
                 </div>
                 <div className="form-group flex-1">

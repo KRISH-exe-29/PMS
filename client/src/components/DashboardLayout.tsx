@@ -17,12 +17,18 @@ import {
 } from 'lucide-react';
 
 const Logo = () => (
-  <svg width="150" height="40" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="150" height="40" fill="#e3282f" />
-    <text x="75" y="27" fontFamily="Arial, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">
-      INDO TECH
-    </text>
-  </svg>
+  <img 
+    src="/logo.svg" 
+    alt="INDO TECH" 
+    style={{ 
+      height: '35px', 
+      width: 'auto', 
+      objectFit: 'contain' 
+    }} 
+    onError={() => {
+      console.warn("Logo image not found in public folder. Please save logo.svg to client/public/");
+    }}
+  />
 );
 
 const navigation = [
@@ -75,9 +81,10 @@ export default function DashboardLayout() {
         display: 'flex',
         flexDirection: 'column',
         zIndex: 10,
-        boxShadow: 'var(--shadow-md)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.5)',
+        background: 'rgba(255, 255, 255, 0.25)',
       }}>
-        <div style={{ height: 'var(--header-height)', display: 'flex', alignItems: 'center', padding: '0 1.5rem', borderBottom: '1px solid rgba(226, 232, 240, 0.4)' }}>
+        <div style={{ height: 'var(--header-height)', display: 'flex', alignItems: 'center', padding: '0 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.4)' }}>
           <Logo />
         </div>
         <nav style={{ flex: 1, padding: '1.5rem 1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -92,15 +99,16 @@ export default function DashboardLayout() {
                   alignItems: 'center',
                   gap: '0.75rem',
                   padding: '0.85rem 1rem',
-                  borderRadius: '0.75rem',
+                  borderRadius: '12px',
                   color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
-                  backgroundColor: isActive ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                  backgroundColor: isActive ? 'rgba(255, 255, 255, 0.6)' : 'transparent',
+                  boxShadow: isActive ? 'inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 8px rgba(0,0,0,0.02)' : 'none',
                   fontWeight: isActive ? 600 : 500,
-                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'all 0.2s ease',
                   transform: isActive ? 'scale(1.02)' : 'scale(1)'
                 }}
                 onMouseOver={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+                  if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
                 }}
                 onMouseOut={(e) => {
                   if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
@@ -129,16 +137,16 @@ export default function DashboardLayout() {
         {/* Header */}
         <header className="glass" style={{ 
           height: 'var(--header-height)', 
-          borderBottom: '1px solid rgba(226, 232, 240, 0.4)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.4)',
+          background: 'rgba(255, 255, 255, 0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 2rem',
           zIndex: 5,
-          boxShadow: 'var(--shadow-sm)'
         }}>
-          <h2 className="text-xl font-bold capitalize text-slate-800">
-            {location.pathname === '/' ? 'Dashboard' : location.pathname.substring(1).replace('-', ' ')}
+          <h2 className={`text-xl font-bold text-slate-800 ${location.pathname.toLowerCase() === '/dpr' ? 'uppercase' : 'capitalize'}`}>
+            {location.pathname === '/' ? 'Dashboard' : (location.pathname.substring(1).toLowerCase() === 'dpr' ? 'DPR' : location.pathname.substring(1).replace('-', ' '))}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
