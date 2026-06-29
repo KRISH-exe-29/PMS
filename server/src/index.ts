@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import path from 'path';
 
 dotenv.config();
 
@@ -67,6 +68,14 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'EPMS Server is running' });
+});
+
+// Serve frontend static files in production
+app.use(express.static(path.join(__dirname, '../../client/dist')));
+
+// React Router fallback (must be after all other routes)
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
 app.listen(port, () => {

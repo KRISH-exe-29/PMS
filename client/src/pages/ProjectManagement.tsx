@@ -111,7 +111,7 @@ export default function ProjectManagement() {
       type: currentProject.type || 'Internal project'
     };
 
-    if (dbProject.status !== 'On Hold') {
+    if ((dbProject.status as string) !== 'On Hold') {
       if (dbProject.progress === 0) dbProject.status = 'Started';
       else if (dbProject.progress === 100) dbProject.status = 'Completed';
       else dbProject.status = 'In Progress';
