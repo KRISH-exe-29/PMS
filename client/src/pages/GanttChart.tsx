@@ -132,6 +132,7 @@ export default function GanttChart() {
         const isExternalProject = p.type === 'External project';
         const isInternalProject = !isExternalProject;
 
+        // const isProjectActual = !!(p.actual_start_date || p.actual_end_date);
         const { start: pStart, end: pEnd } = getSafeDates(
           p.actual_start_date, p.start_date, p.planned_start_date, 
           p.actual_end_date, p.end_date, p.planned_end_date
@@ -159,6 +160,7 @@ export default function GanttChart() {
 
         const pMilestones = milestones.filter(m => m.project_id === p.id);
         pMilestones.forEach(m => {
+          // const isMilestoneActual = !!(m.actual_start_date || m.actual_end_date);
           const { start: mStart, end: mEnd } = getSafeDates(
             m.actual_start_date, m.start_date, m.planned_start_date, 
             m.actual_end_date, m.end_date, m.planned_end_date
@@ -187,6 +189,7 @@ export default function GanttChart() {
         });
 
         pTasks.forEach(t => {
+          // const isTaskActual = !!(t.actual_start_date || t.actual_end_date);
           const { start: tStart, end: tEnd } = getSafeDates(
             t.actual_start_date, t.start_date, t.planned_start_date, 
             t.actual_end_date, t.end_date, t.planned_end_date
