@@ -10,8 +10,8 @@ const port = process.env.PORT || 5000;
 
 // Security: Restrict CORS to specific origins
 const allowedOrigins = [
-  'http://localhost:7455',
-  'http://192.168.7.92:7455',
+  'http://localhost:5173',
+  'http://192.168.7.92:5173',
 ];
 
 app.use(cors({
