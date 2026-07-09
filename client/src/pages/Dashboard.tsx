@@ -1,5 +1,4 @@
 import { Briefcase, CalendarDays, CheckSquare, DollarSign, PieChart as PieChartIcon, BarChart2 } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -8,9 +7,6 @@ export default function Dashboard() {
   const [milestones, setMilestones] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Sync with Budget Management page
-  const [overallBudget] = useLocalStorage('epms_overall_budget', 5000000);
 
   useEffect(() => {
     fetchDashboardData();
@@ -63,8 +59,9 @@ export default function Dashboard() {
     }
   };
 
+  const totalPlannedBudget = projects.reduce((sum, p) => sum + (Number(p.budget) || 0), 0);
   const actualCost = projects.reduce((sum, p) => sum + (Number(p.actual_cost) || 0), 0);
-  const remainingBudget = overallBudget - actualCost;
+  const remainingBudget = totalPlannedBudget - actualCost;
   
   const activeMilestones = milestones.filter(m => m.status === 'In Progress' || m.status === 'Not Started').length;
   const tasksInProgress = tasks.filter(t => t.status === 'In Progress').length;
@@ -178,7 +175,7 @@ export default function Dashboard() {
           </div>
           <div className="text-sm">
             <span className="font-medium text-muted">
-              {actualCost > 0 ? `${Math.round((actualCost / overallBudget) * 100) || 0}% used of total` : 'No expenses yet'}
+              {actualCost > 0 ? `${Math.round((actualCost / totalPlannedBudget) * 100) || 0}% used of total` : 'No expenses yet'}
             </span>
           </div>
         </div>
