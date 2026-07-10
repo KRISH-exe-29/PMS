@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search, Plus, Trash2, X, Receipt, Upload, Eye, Edit2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Billing {
   id: string;
@@ -257,14 +258,17 @@ export default function BillingManagement() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+          >
             {loading ? (
               <tr><td colSpan={9} style={{ textAlign: 'center', padding: '2rem' }}>Loading bills...</td></tr>
             ) : filteredBillings.length === 0 ? (
               <tr><td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted-foreground)' }}>No bills found</td></tr>
             ) : (
               filteredBillings.map((bill) => (
-                <tr key={bill.id}>
+                <motion.tr variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} key={bill.id}>
                   <td className="font-medium">{bill.invoiceNo}</td>
                   <td>{bill.vendorName}</td>
                   <td>{bill.projectName}</td>
@@ -274,16 +278,7 @@ export default function BillingManagement() {
                   </td>
                   <td>{new Date(bill.actualDate).toLocaleDateString()}</td>
                   <td>
-                    <span 
-                      style={{ 
-                        padding: '0.25rem 0.5rem', 
-                        borderRadius: '0.25rem', 
-                        fontSize: '0.75rem', 
-                        fontWeight: 600,
-                        backgroundColor: bill.paymentStatus === 'Paid' ? '#dcfce7' : '#fee2e2',
-                        color: bill.paymentStatus === 'Paid' ? '#16a34a' : '#dc2626'
-                      }}
-                    >
+                    <span className={`badge ${bill.paymentStatus === 'Paid' ? 'badge-success' : 'badge-destructive'}`}>
                       {bill.paymentStatus}
                     </span>
                   </td>
@@ -305,40 +300,44 @@ export default function BillingManagement() {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleView(bill)}
-                        className="btn" 
-                        style={{ padding: '0.25rem', color: 'var(--primary)' }}
+                        className="action-btn" 
                         title="View Bill"
                       >
                         <Eye size={16} />
                       </button>
                       <button 
                         onClick={() => handleEdit(bill)}
-                        className="btn" 
-                        style={{ padding: '0.25rem', color: '#f59e0b' }}
+                        className="action-btn" 
                         title="Edit Bill"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button 
                         onClick={() => handleDelete(bill.id)}
-                        className="btn" 
-                        style={{ padding: '0.25rem', color: 'var(--destructive)' }}
+                        className="action-btn action-btn-danger" 
                         title="Delete Bill"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               ))
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
 
+      <AnimatePresence>
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated" style={{ maxWidth: '600px' }}
+          >
             <div className="modal-header flex justify-between items-center">
               <h2 className="text-xl font-bold">Add New Bill</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
@@ -471,67 +470,70 @@ export default function BillingManagement() {
               <button className="btn btn-outline" onClick={() => setIsModalOpen(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave}>Save Bill</button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
       {/* View Modal */}
+      <AnimatePresence>
       {isViewModalOpen && currentBilling && (
         <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-800">Billing Details</h2>
-              <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={24} />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated" style={{ position: 'relative' }}
+          >
+            <div className="view-modal-header">
+              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="40" rx="4" fill="#e3282f" />
+                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
+              </svg>
+              <h2 className="view-modal-header-title">Billing Details</h2>
+              <button onClick={() => setIsViewModalOpen(false)} style={{ position: 'absolute', right: '1.5rem', top: '1.5rem', color: 'var(--muted-foreground)' }}>
+                <X size={20} />
               </button>
             </div>
             
-            <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+            <div className="view-modal-grid">
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Project</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.projectName || '-'}</p>
+                <p className="view-modal-label">Project</p>
+                <p className="view-modal-value text-primary">{currentBilling.projectName || '-'}</p>
               </div>
               
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Milestone</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.milestoneName || '-'}</p>
+                <p className="view-modal-label">Milestone</p>
+                <p className="view-modal-value">{currentBilling.milestoneName || '-'}</p>
               </div>
               
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Vendor Name</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.vendorName || '-'}</p>
+                <p className="view-modal-label">Vendor Name</p>
+                <p className="view-modal-value">{currentBilling.vendorName || '-'}</p>
               </div>
               
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Invoice No</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.invoiceNo || '-'}</p>
+                <p className="view-modal-label">Invoice No</p>
+                <p className="view-modal-value">{currentBilling.invoiceNo || '-'}</p>
               </div>
               
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Invoice Amount</p>
-                <p className="text-base font-medium text-emerald-600">
+                <p className="view-modal-label">Invoice Amount</p>
+                <p className="view-modal-value font-medium text-emerald-600">
                   {currentBilling.invoiceAmount ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(currentBilling.invoiceAmount) : '-'}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Actual Date</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.actualDate ? new Date(currentBilling.actualDate).toLocaleDateString() : '-'}</p>
+                <p className="view-modal-label">Actual Date</p>
+                <p className="view-modal-value">{currentBilling.actualDate ? new Date(currentBilling.actualDate).toLocaleDateString() : '-'}</p>
               </div>
               
               <div className="col-span-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Status & Attachments</p>
-                <div className="flex items-center gap-4">
-                  <span 
-                    style={{ 
-                      padding: '0.25rem 0.5rem', 
-                      borderRadius: '0.25rem', 
-                      fontSize: '0.75rem', 
-                      fontWeight: 600,
-                      backgroundColor: currentBilling.paymentStatus === 'Paid' ? '#dcfce7' : '#fee2e2',
-                      color: currentBilling.paymentStatus === 'Paid' ? '#16a34a' : '#dc2626'
-                    }}
-                  >
+                <p className="view-modal-label">Status & Attachments</p>
+                <div className="flex items-center gap-4 view-modal-value" style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}>
+                  <span className={`badge ${currentBilling.paymentStatus === 'Paid' ? 'badge-success' : 'badge-destructive'}`}>
                     {currentBilling.paymentStatus}
                   </span>
                   {currentBilling.attachmentUrl && (
@@ -552,9 +554,10 @@ export default function BillingManagement() {
                 Close
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

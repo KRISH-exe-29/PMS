@@ -1,7 +1,8 @@
-import { Search, Eye, X } from 'lucide-react';
+import { Search, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BudgetManagement() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -70,40 +71,41 @@ export default function BudgetManagement() {
 
   return (
     <div>
-      <div className="flex gap-6 mb-6">
-        <div className="card flex-1">
+      <motion.div 
+        initial="hidden" animate="visible"
+        variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+        className="flex gap-6 mb-6"
+      >
+        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated flex-1">
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-muted text-sm font-medium">Total Planned Budget</p>
               <h3 className="text-2xl font-bold">₹ {totalPlannedBudget.toLocaleString('en-IN')}</h3>
               <p className="text-xs text-muted mt-1">Auto Calculated from Projects</p>
             </div>
-
           </div>
-        </div>
+        </motion.div>
         
-        <div className="card flex-1">
+        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated flex-1">
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-muted text-sm font-medium">Actual Cost</p>
               <h3 className="text-2xl font-bold text-warning">₹ {actualCost.toLocaleString('en-IN')}</h3>
               <p className="text-xs text-muted mt-1">Auto Calculated</p>
             </div>
-
           </div>
-        </div>
+        </motion.div>
 
-        <div className="card flex-1">
+        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated flex-1">
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-muted text-sm font-medium">Remaining Budget</p>
               <h3 className="text-2xl font-bold text-success">₹ {remainingBudget.toLocaleString('en-IN')}</h3>
               <p className="text-xs text-muted mt-1">Auto Calculated</p>
             </div>
-
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <div className="page-header">
         <div style={{ position: 'relative', width: '300px' }}>
@@ -132,9 +134,12 @@ export default function BudgetManagement() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+          >
             {filteredProjects.map(project => (
-              <tr key={project.id}>
+              <motion.tr variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} key={project.id}>
                 <td className="font-medium">{project.name}</td>
                 <td>{project.code}</td>
                 <td style={{ textAlign: 'right' }}>₹ {(Number(project.budget) || 0).toLocaleString('en-IN')}</td>
@@ -146,8 +151,7 @@ export default function BudgetManagement() {
                 <td>
                   <div className="flex gap-2">
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn action-btn-primary" 
                       title="View"
                       onClick={() => { setCurrentProject(project); setIsViewModalOpen(true); }}
                     >
@@ -155,42 +159,43 @@ export default function BudgetManagement() {
                     </button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
             {loading && (
               <tr>
-                <td colSpan={5} className="text-center text-muted py-8">Loading projects from backend...</td>
+                <td colSpan={7} className="text-center text-muted py-8">Loading projects from backend...</td>
               </tr>
             )}
             {!loading && filteredProjects.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center text-muted py-8">No projects found. Create one in the Projects screen.</td>
+                <td colSpan={7} className="text-center text-muted py-8">No projects found. Create one in the Projects screen.</td>
               </tr>
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
 
 
 
+      <AnimatePresence>
       {isViewModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '800px', padding: 0, borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)', animation: 'modalIn 0.3s ease-out' }}>
-            <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="150" height="40" rx="4" fill="#e3282f" />
-                  <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
-                </svg>
-                <div style={{ height: '24px', width: '2px', backgroundColor: '#cbd5e1' }}></div>
-                <h2 className="text-lg font-bold text-slate-800">Project Budget View</h2>
-              </div>
-              <button onClick={() => setIsViewModalOpen(false)} style={{ color: '#64748b', padding: '0.5rem', borderRadius: '50%', backgroundColor: 'white', border: '1px solid #e2e8f0', cursor: 'pointer' }} className="hover:bg-slate-50 transition-colors">
-                <X size={18} />
-              </button>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated" style={{ maxWidth: '800px', padding: 0, overflow: 'hidden' }}
+          >
+            <div className="view-modal-header">
+              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="40" rx="4" fill="#e3282f" />
+                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
+              </svg>
+              <h2 className="view-modal-header-title">Project Budget View</h2>
             </div>
             
-            <div style={{ padding: '2rem', backgroundColor: '#f8fafc' }}>
+            <div style={{ padding: '2rem', backgroundColor: 'var(--background)' }}>
               <div style={{ marginBottom: '1.5rem' }}>
                 <h3 className="text-xl font-bold text-slate-800 mb-1">{currentProject.name}</h3>
                 <p className="text-sm text-slate-500">Budget & Financial Overview</p>
@@ -198,22 +203,22 @@ export default function BudgetManagement() {
 
               {/* Summary Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+                <div className="card glass-card" style={{ padding: '1.25rem' }}>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Planned Budget</p>
                   <p className="text-2xl font-bold text-slate-800">₹ {(Number(currentProject.budget) || 0).toLocaleString('en-IN')}</p>
                 </div>
-                <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', borderBottom: '4px solid #facc15' }}>
+                <div className="card glass-card" style={{ padding: '1.25rem', borderBottom: '4px solid #facc15' }}>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Actual Cost</p>
                   <p className="text-2xl font-bold text-slate-800">₹ {(Number(currentProject.actualCost) || 0).toLocaleString('en-IN')}</p>
                 </div>
-                <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', borderBottom: '4px solid #22c55e' }}>
+                <div className="card glass-card" style={{ padding: '1.25rem', borderBottom: '4px solid #22c55e' }}>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Remaining Budget</p>
                   <p className="text-2xl font-bold text-slate-800">₹ {Math.max(0, (Number(currentProject.budget) || 0) - (Number(currentProject.actualCost) || 0)).toLocaleString('en-IN')}</p>
                 </div>
               </div>
 
               {/* Chart Section */}
-              <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+              <div className="card glass-card" style={{ padding: '1.5rem' }}>
                 <div style={{ height: '300px' }} className="w-full flex justify-center items-center">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -251,14 +256,15 @@ export default function BudgetManagement() {
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#f1f5f9', padding: '1rem 2rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-primary shadow-sm" onClick={() => setIsViewModalOpen(false)}>
+            <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', backgroundColor: 'var(--card)' }}>
+              <button type="button" className="btn btn-outline" onClick={() => setIsViewModalOpen(false)}>
                 Close Window
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

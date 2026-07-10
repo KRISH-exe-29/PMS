@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search, Upload, Download, Trash2, X, File, ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Document {
   id: string;
@@ -265,13 +266,17 @@ export default function DocumentManagement() {
         ) : Object.keys(groupedDocs).length === 0 ? (
           <div className="text-center py-8 text-muted">No documents found.</div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <motion.div 
+            className="flex flex-col gap-4"
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+          >
             {Object.keys(groupedDocs).map(projectName => {
               const projectDocs = groupedDocs[projectName];
               const isProjectExpanded = expandedProjects.includes(projectName);
               
               return (
-                <div key={projectName} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', backgroundColor: 'var(--card)', boxShadow: 'var(--shadow-sm)' }}>
+                <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} key={projectName} className="card glass-elevated" style={{ padding: 0, overflow: 'hidden' }}>
                   {/* Project Header */}
                   <div 
                     className="flex items-center"
@@ -280,7 +285,7 @@ export default function DocumentManagement() {
                       padding: '1rem', 
                       cursor: 'pointer', 
                       gap: '0.75rem',
-                      backgroundColor: isProjectExpanded ? 'var(--secondary)' : 'transparent', 
+                      backgroundColor: isProjectExpanded ? 'rgba(255, 255, 255, 0.1)' : 'transparent', 
                       borderBottom: isProjectExpanded ? '1px solid var(--border)' : 'none',
                       transition: 'background-color 0.2s'
                     }}
@@ -302,7 +307,7 @@ export default function DocumentManagement() {
                         const isMilestoneExpanded = expandedMilestones.includes(milestoneKey);
                         
                         return (
-                          <div key={milestoneKey} style={{ border: '1px solid var(--border)', borderRadius: '0.5rem', overflow: 'hidden', backgroundColor: 'var(--card)' }}>
+                          <div key={milestoneKey} className="card glass-subtle" style={{ padding: 0, overflow: 'hidden', borderRadius: '12px' }}>
                             {/* Milestone Header */}
                             <div 
                               className="flex items-center"
@@ -326,20 +331,23 @@ export default function DocumentManagement() {
                             {/* Milestone Content (Documents) */}
                             {isMilestoneExpanded && (
                               <div style={{ padding: 0 }}>
-                                <table className="w-full text-sm" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-                                  <thead style={{ backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)', borderBottom: '1px solid var(--border)' }}>
+                                <table className="data-table folder-table">
+                                  <thead>
                                     <tr>
-                                      <th style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>File Name</th>
-                                      <th style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>Remarks</th>
-                                      <th style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>Upload Date</th>
-                                      <th style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>Size</th>
-                                      <th style={{ padding: '0.75rem 1rem', fontWeight: 500, textAlign: 'right' }}>Actions</th>
+                                      <th>File Name</th>
+                                      <th>Remarks</th>
+                                      <th>Upload Date</th>
+                                      <th>Size</th>
+                                      <th style={{ textAlign: 'right' }}>Actions</th>
                                     </tr>
                                   </thead>
-                                  <tbody>
+                                  <motion.tbody
+                                    initial="hidden" animate="visible"
+                                    variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+                                  >
                                     {milestoneDocs.map((doc: Document) => (
-                                      <tr key={doc.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                        <td style={{ padding: '0.75rem 1rem' }}>
+                                      <motion.tr variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} key={doc.id}>
+                                        <td>
                                           <div 
                                             className="flex items-center gap-2"
                                             style={{ cursor: 'pointer', color: 'var(--primary)' }}
@@ -356,14 +364,13 @@ export default function DocumentManagement() {
                                             <span className="font-medium" style={{ textDecoration: 'underline' }}>{doc.fileName}</span>
                                           </div>
                                         </td>
-                                        <td style={{ padding: '0.75rem 1rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={doc.remarks}>{doc.remarks}</td>
-                                        <td style={{ padding: '0.75rem 1rem', color: 'var(--muted-foreground)' }}>{doc.uploadDate}</td>
-                                        <td style={{ padding: '0.75rem 1rem', color: 'var(--muted-foreground)' }}>{doc.size}</td>
-                                        <td style={{ padding: '0.75rem 1rem' }}>
-                                          <div className="flex gap-2 justify-between" style={{ justifyContent: 'flex-end' }}>
+                                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={doc.remarks}>{doc.remarks}</td>
+                                        <td className="text-muted">{doc.uploadDate}</td>
+                                        <td className="text-muted">{doc.size}</td>
+                                        <td>
+                                          <div className="flex gap-2 justify-end">
                                             <button 
-                                              className="btn btn-outline" 
-                                              style={{ padding: '0.25rem 0.5rem', border: 'none' }} 
+                                              className="action-btn" 
                                               title="Download"
                                               onClick={() => {
                                                 let urlToOpen = doc.file_url;
@@ -377,18 +384,17 @@ export default function DocumentManagement() {
                                               <Download size={16} style={{ color: 'var(--muted-foreground)' }} />
                                             </button>
                                             <button 
-                                              className="btn btn-outline" 
-                                              style={{ padding: '0.25rem 0.5rem', border: 'none' }} 
+                                              className="action-btn action-btn-danger" 
                                               title="Delete"
                                               onClick={() => handleDelete(doc.id)}
                                             >
-                                              <Trash2 size={16} style={{ color: 'var(--destructive)' }} />
+                                              <Trash2 size={16} />
                                             </button>
                                           </div>
                                         </td>
-                                      </tr>
+                                      </motion.tr>
                                     ))}
-                                  </tbody>
+                                  </motion.tbody>
                                 </table>
                               </div>
                             )}
@@ -397,16 +403,23 @@ export default function DocumentManagement() {
                       })}
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
       </div>
 
+      <AnimatePresence>
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated"
+          >
             <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
               <h2 className="text-lg font-bold">Upload Document</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
@@ -489,9 +502,10 @@ export default function DocumentManagement() {
                 onChange={handleFileChange}
               />
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { Briefcase, CalendarDays, CheckSquare, DollarSign, PieChart as PieChartI
 import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { motion } from 'framer-motion';
 export default function Dashboard() {
   const [projects, setProjects] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<any[]>([]);
@@ -111,15 +112,32 @@ export default function Dashboard() {
     { name: 'Blocked', count: tasks.filter(t => t.status === 'Blocked').length, fill: '#ef4444' }
   ].filter(d => d.count > 0);
 
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6 p-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+          {[1,2,3,4].map(i => <div key={i} className="skeleton skeleton-card" />)}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+          {[1,2].map(i => <div key={i} className="skeleton skeleton-card" style={{ height: '360px' }} />)}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 p-2">
       {/* Metrics Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-        <div className="card glass-card">
+      <motion.div 
+        initial="hidden" animate="visible"
+        variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}
+      >
+        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated">
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-sm font-medium text-muted">Total Projects</p>
-              <h3 className="text-3xl mt-1 text-slate-800">{projects.length}</h3>
+              <h3 className="text-3xl mt-1 text-slate-800" style={{ fontWeight: 'var(--font-weight-display)' }}>{projects.length}</h3>
             </div>
             <div className="p-3 rounded-xl bg-blue-50 text-blue-700 shadow-sm">
               <Briefcase size={24} />
@@ -128,13 +146,13 @@ export default function Dashboard() {
           <div className="text-sm flex items-center gap-1">
             <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs">+Active tracking</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="card glass-card">
+        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated">
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-sm font-medium text-muted">Active Milestones</p>
-              <h3 className="text-3xl mt-1 text-slate-800">{activeMilestones}</h3>
+              <h3 className="text-3xl mt-1 text-slate-800" style={{ fontWeight: 'var(--font-weight-display)' }}>{activeMilestones}</h3>
             </div>
             <div className="p-3 rounded-xl bg-warning/10 text-warning shadow-sm">
               <CalendarDays size={24} />
@@ -143,13 +161,13 @@ export default function Dashboard() {
           <div className="text-sm">
             <span className="font-medium text-muted">Across all projects</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="card glass-card">
+        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated">
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-sm font-medium text-muted">Total Tasks</p>
-              <h3 className="text-3xl mt-1 text-slate-800">{tasks.length}</h3>
+              <h3 className="text-3xl mt-1 text-slate-800" style={{ fontWeight: 'var(--font-weight-display)' }}>{tasks.length}</h3>
             </div>
             <div className="p-3 rounded-xl bg-emerald-50 text-emerald-700 shadow-sm">
               <CheckSquare size={24} />
@@ -159,13 +177,13 @@ export default function Dashboard() {
             <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md text-xs">{tasksCompleted} completed</span>
             <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs">{tasksInProgress} in progress</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="card glass-card">
+        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated">
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-sm font-medium text-muted">Remaining Budget</p>
-              <h3 className="text-3xl mt-1 text-slate-800">
+              <h3 className="text-3xl mt-1 text-slate-800" style={{ fontWeight: 'var(--font-weight-display)' }}>
                 {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(remainingBudget)}
               </h3>
             </div>
@@ -178,12 +196,12 @@ export default function Dashboard() {
               {actualCost > 0 ? `${Math.round((actualCost / totalPlannedBudget) * 100) || 0}% used of total` : 'No expenses yet'}
             </span>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Pictorial Representation (Charts) Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
-        <div className="card">
+        <div className="card glass-elevated">
           <div className="flex items-center gap-2 mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <PieChartIcon size={20} style={{ color: '#2563eb' }} />
             <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Project Status Distribution</h2>
@@ -211,12 +229,14 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-slate-400">No project data available</div>
+              <div className="empty-state h-full p-0">
+                <div className="empty-state-title">No project data available</div>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="card">
+        <div className="card glass-elevated">
           <div className="flex items-center gap-2 mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <BarChart2 size={20} style={{ color: '#10b981' }} />
             <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Tasks Progress Overview</h2>
@@ -236,7 +256,9 @@ export default function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-slate-400">No task data available</div>
+              <div className="empty-state h-full p-0">
+                <div className="empty-state-title">No task data available</div>
+              </div>
             )}
           </div>
         </div>
@@ -244,7 +266,7 @@ export default function Dashboard() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
         {/* Recent Projects Table */}
-        <div className="card glass-card table-container" style={{ flex: '2', minWidth: '400px' }}>
+        <div className="card glass-elevated table-container" style={{ flex: '2', minWidth: '400px' }}>
           <div className="flex justify-between items-center mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <h2 className="text-lg font-bold text-slate-800">Recent Projects</h2>
             <span className="font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full cursor-pointer hover:bg-blue-100 transition-colors">View All</span>
@@ -258,11 +280,14 @@ export default function Dashboard() {
                   <th>Overall Progress</th>
                 </tr>
               </thead>
-              <tbody>
+              <motion.tbody
+                initial="hidden" animate="visible"
+                variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+              >
                 {projects.slice(0, 5).map(project => {
                   const colors = getStatusColor(project.status);
                   return (
-                    <tr key={project.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <motion.tr variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} key={project.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '1rem' }}>
                         <div className="font-semibold" style={{ color: 'var(--foreground)' }}>{project.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{project.code}</div>
@@ -276,33 +301,35 @@ export default function Dashboard() {
                       </td>
                       <td style={{ padding: '1rem' }}>
                         <div className="flex items-center gap-3">
-                          <div style={{ flex: 1, height: '0.5rem', backgroundColor: 'var(--secondary)', borderRadius: '9999px', overflow: 'hidden' }}>
-                            <div 
-                              style={{ height: '100%', borderRadius: '9999px', transition: 'width 0.5s', width: colors.percent, backgroundColor: colors.bar }}
-                            ></div>
+                          <div className="progress-bar">
+                            <div className="progress-fill" style={{ width: colors.percent, background: colors.bar }}></div>
                           </div>
                           <span style={{ fontSize: '0.75rem', fontWeight: 700, width: '2rem', textAlign: 'right', color: colors.text }}>
                             {colors.percent}
                           </span>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })}
                 {projects.length === 0 && (
                   <tr>
-                    <td colSpan={3} style={{ color: 'var(--muted-foreground)', textAlign: 'center', padding: '2.5rem', fontWeight: 500 }}>
-                      {loading ? 'Loading projects...' : 'No projects active.'}
+                    <td colSpan={3}>
+                      <div className="empty-state">
+                        <Briefcase className="empty-state-icon" />
+                        <div className="empty-state-title">No projects active</div>
+                        <div className="empty-state-description">Get started by creating a new project.</div>
+                      </div>
                     </td>
                   </tr>
                 )}
-              </tbody>
+              </motion.tbody>
             </table>
           </div>
         </div>
 
         {/* Upcoming Deadlines */}
-        <div className="card" style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column' }}>
+        <div className="card glass-elevated" style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column' }}>
           <div className="flex justify-between items-center mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Upcoming Deadlines</h2>
           </div>

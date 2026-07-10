@@ -7,7 +7,7 @@ type Tab = 'team' | 'individual';
 
 const CustomTaskListHeader: React.FC<{ headerHeight: number; rowWidth: string; fontFamily: string; fontSize: string }> = ({ headerHeight, fontFamily, fontSize }) => {
   return (
-    <div style={{ display: 'flex', height: headerHeight, fontFamily, fontSize, borderBottom: '1px solid #ebeff2', background: '#f8fafc', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+    <div style={{ display: 'flex', height: headerHeight, fontFamily, fontSize, borderBottom: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase' }}>
       <div style={{ flex: 1, minWidth: '150px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>Name</div>
       <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>From</div>
       <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>To</div>
@@ -40,8 +40,10 @@ const CustomTaskListTable: React.FC<{
         return (
           <div 
             key={t.id} 
-            style={{ display: 'flex', height: rowHeight, fontFamily, borderBottom: '1px solid #ebeff2', background: t.id === selectedTaskId ? '#f3f4f6' : 'transparent', color: '#334155' }}
+            style={{ display: 'flex', height: rowHeight, fontFamily, borderBottom: '1px solid var(--border)', backgroundColor: t.id === selectedTaskId ? 'rgba(255, 255, 255, 0.45)' : 'transparent', color: 'var(--foreground)', transition: 'background-color 0.2s ease', cursor: 'pointer' }}
             onClick={() => setSelectedTask(t.id)}
+            onMouseEnter={(e) => { if (t.id !== selectedTaskId) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'; }}
+            onMouseLeave={(e) => { if (t.id !== selectedTaskId) e.currentTarget.style.backgroundColor = 'transparent'; }}
           >
              <div style={{ flex: 1, minWidth: '150px', padding: '0 10px', paddingLeft, display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                {expander}
@@ -62,11 +64,11 @@ const CustomTooltip: React.FC<{ task: Task; fontSize: string; fontFamily: string
   const durationMs = task.end.getTime() - task.start.getTime();
   const durationDays = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24)));
   return (
-    <div style={{ padding: '12px', background: 'white', border: `2px solid ${task.styles?.backgroundColor || '#e2e8f0'}`, borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontFamily, fontSize }}>
-      <b style={{ fontSize: '14px', display: 'block', marginBottom: '4px', color: task.styles?.backgroundColor || '#0f172a' }}>{task.name}</b>
-      <div style={{ fontSize: '12px', color: '#64748b' }}>Start: {task.start.toLocaleDateString('en-GB')}</div>
-      <div style={{ fontSize: '12px', color: '#64748b' }}>End: {task.end.toLocaleDateString('en-GB')}</div>
-      <div style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '4px', color: task.styles?.backgroundColor || '#000' }}>
+    <div className="glass-elevated" style={{ padding: '12px', border: `2px solid ${task.styles?.backgroundColor || 'var(--border)'}`, fontFamily, fontSize }}>
+      <b style={{ fontSize: '14px', display: 'block', marginBottom: '4px', color: task.styles?.backgroundColor || 'var(--foreground)' }}>{task.name}</b>
+      <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>Start: {task.start.toLocaleDateString('en-GB')}</div>
+      <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>End: {task.end.toLocaleDateString('en-GB')}</div>
+      <div style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '4px', color: task.styles?.backgroundColor || 'var(--foreground)' }}>
         Duration: {durationDays} Days
       </div>
     </div>
@@ -328,14 +330,14 @@ export default function GanttChart() {
         <div className="flex gap-4">
           <button
             className={`pb-2 ${activeTab === 'individual' ? 'font-bold text-primary border-b-2' : 'text-muted'}`}
-            style={{ borderBottomColor: activeTab === 'individual' ? 'var(--primary)' : 'transparent', borderBottomStyle: 'solid', borderBottomWidth: '2px', paddingBottom: '0.5rem' }}
+            style={{ borderBottomColor: activeTab === 'individual' ? 'var(--primary)' : 'transparent', borderBottomStyle: 'solid', borderBottomWidth: '2px', paddingBottom: '0.5rem', transition: 'all 0.2s ease' }}
             onClick={() => setActiveTab('individual')}
           >
             Internal Team Gantt Chart
           </button>
           <button
             className={`pb-2 ${activeTab === 'team' ? 'font-bold text-primary border-b-2' : 'text-muted'}`}
-            style={{ borderBottomColor: activeTab === 'team' ? 'var(--primary)' : 'transparent', borderBottomStyle: 'solid', borderBottomWidth: '2px', paddingBottom: '0.5rem' }}
+            style={{ borderBottomColor: activeTab === 'team' ? 'var(--primary)' : 'transparent', borderBottomStyle: 'solid', borderBottomWidth: '2px', paddingBottom: '0.5rem', transition: 'all 0.2s ease' }}
             onClick={() => setActiveTab('team')}
           >
             External Team Gantt Chart
@@ -346,11 +348,10 @@ export default function GanttChart() {
           <div className="w-64 relative">
              <input 
                type="text" 
-               className="input w-full" 
+               className="form-input" 
                placeholder="Search projects..." 
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
-               style={{ paddingLeft: '1rem', height: '32px' }}
              />
           </div>
 
@@ -362,7 +363,7 @@ export default function GanttChart() {
         </div>
       </div>
 
-      <div className="card p-4 overflow-hidden">
+      <div className="card glass-card overflow-hidden" style={{ padding: '1.5rem' }}>
         {loading ? (
            <div className="p-8 text-center text-muted-foreground">Loading Professional Gantt Chart...</div>
         ) : tasks.length > 0 ? (() => {

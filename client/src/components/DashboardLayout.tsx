@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -70,75 +71,99 @@ export default function DashboardLayout() {
   };
 
   if (loading) {
-    return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+    return (
+      <div className="app-container">
+        <aside className="glass-subtle" style={{ width: 'var(--sidebar-width)', display: 'flex', flexDirection: 'column', zIndex: 10, borderRight: '1px solid var(--border)', transition: 'width 0.3s ease' }}>
+          <div style={{ height: 'var(--header-height)', display: 'flex', alignItems: 'center', padding: '0 1.5rem', borderBottom: '1px solid var(--border)' }} />
+          <div style={{ flex: 1, padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {[1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ height: '48px', borderRadius: '12px' }} />)}
+          </div>
+        </aside>
+        <main className="main-content">
+          <header className="glass-subtle" style={{ height: 'var(--header-height)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', zIndex: 5, borderBottom: '1px solid var(--border)' }}>
+            <div className="skeleton skeleton-text" style={{ width: '150px', height: '24px', margin: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                <div className="skeleton skeleton-text" style={{ width: '100px', height: '14px', margin: 0 }} />
+                <div className="skeleton skeleton-text" style={{ width: '80px', height: '10px', margin: 0 }} />
+              </div>
+              <div className="skeleton" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+            </div>
+          </header>
+          <div className="page-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div className="skeleton" style={{ width: '200px', height: '24px', borderRadius: '8px' }} />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
     <div className="app-container">
       {/* Sidebar */}
-      <aside className="glass" style={{
+      <aside className="glass-subtle" style={{
         width: 'var(--sidebar-width)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 10,
-        borderRight: '1px solid rgba(255, 255, 255, 0.5)',
-        background: 'rgba(255, 255, 255, 0.25)',
+        borderRight: '1px solid var(--border)',
+        transition: 'width 0.3s ease'
       }}>
-        <div style={{ height: 'var(--header-height)', display: 'flex', alignItems: 'center', padding: '0 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.4)' }}>
+        <div style={{ height: 'var(--header-height)', display: 'flex', alignItems: 'center', padding: '0 1.5rem', borderBottom: '1px solid var(--border)', overflow: 'hidden' }}>
           <Logo />
         </div>
-        <nav style={{ flex: 1, padding: '1.5rem 1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <nav style={{ flex: 1, padding: '1.5rem 1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowX: 'hidden' }}>
           {navigation.map((item) => {
             const isActive = location.pathname === item.href;
             return (
               <Link
                 key={item.name}
                 to={item.href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.85rem 1rem',
-                  borderRadius: '12px',
-                  color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
-                  backgroundColor: isActive ? 'rgba(255, 255, 255, 0.6)' : 'transparent',
-                  boxShadow: isActive ? 'inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 8px rgba(0,0,0,0.02)' : 'none',
-                  fontWeight: isActive ? 600 : 500,
-                  transition: 'all 0.2s ease',
-                  transform: isActive ? 'scale(1.02)' : 'scale(1)'
-                }}
-                onMouseOver={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                }}
-                onMouseOut={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
-                }}
+                style={{ textDecoration: 'none' }}
               >
-                <item.icon size={isActive ? 22 : 20} style={{ transition: 'all 0.3s ease' }} />
-                {item.name}
+                <motion.div
+                  whileHover={{ scale: 1.02, backgroundColor: isActive ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.3)' }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.85rem 1rem',
+                    borderRadius: '12px',
+                    color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
+                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.6)' : 'transparent',
+                    boxShadow: isActive ? 'inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 8px rgba(0,0,0,0.02)' : 'none',
+                    fontWeight: isActive ? 600 : 500,
+                    transition: 'background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
+                  }}
+                >
+                  <item.icon size={isActive ? 22 : 20} style={{ transition: 'all 0.3s ease', flexShrink: 0 }} />
+                  <span className="sidebar-text" style={{ whiteSpace: 'nowrap' }}>{item.name}</span>
+                </motion.div>
               </Link>
             );
           })}
         </nav>
         <div style={{ padding: '1rem', borderTop: '1px solid var(--border)' }}>
-          <button 
+          <motion.button 
+            whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleLogout}
-            className="btn w-full" 
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-start', color: 'var(--muted-foreground)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
+            className="w-full" 
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-start', color: 'var(--muted-foreground)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: '0.85rem 1rem', borderRadius: '12px', fontWeight: 500, transition: 'background-color 0.2s ease' }}
           >
-            <LogOut size={20} />
-            Logout
-          </button>
+            <LogOut size={20} style={{ flexShrink: 0 }} />
+            <span className="sidebar-text" style={{ whiteSpace: 'nowrap' }}>Logout</span>
+          </motion.button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="main-content">
         {/* Header */}
-        <header className="glass" style={{ 
+        <header className="glass-subtle" style={{ 
           height: 'var(--header-height)', 
-          borderBottom: '1px solid rgba(255, 255, 255, 0.4)',
-          background: 'rgba(255, 255, 255, 0.25)',
+          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -162,9 +187,18 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <div className="page-content">
-          <Outlet />
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="page-content"
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type ProjectStatus = 'Started' | 'In Progress' | 'Completed';
 
@@ -283,9 +284,12 @@ export default function ProjectManagement() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+          >
             {filteredProjects.map(project => (
-              <tr key={project.id}>
+              <motion.tr variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} key={project.id}>
                 <td className="font-medium">{project.code}</td>
                 <td>{project.name}</td>
                 <td>₹ {project.budget.toLocaleString('en-IN')}</td>
@@ -308,24 +312,21 @@ export default function ProjectManagement() {
                 <td>
                   <div className="flex gap-2">
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn action-btn-primary" 
                       title="View"
                       onClick={() => { setCurrentProject(project); setIsViewModalOpen(true); }}
                     >
                       <Eye size={16} />
                     </button>
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn action-btn-warning" 
                       title="Edit"
                       onClick={() => { setCurrentProject(project); setIsModalOpen(true); }}
                     >
                       <Edit size={16} />
                     </button>
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem', color: 'var(--destructive)' }} 
+                      className="action-btn action-btn-danger" 
                       title="Delete"
                       onClick={() => handleDelete(project.id)}
                     >
@@ -333,25 +334,42 @@ export default function ProjectManagement() {
                     </button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
             {loading && (
               <tr>
-                <td colSpan={9} className="text-center py-4 text-muted">Loading projects from backend...</td>
+                <td colSpan={9} style={{ padding: '2rem' }}>
+                  <div className="flex flex-col gap-4">
+                    {[1,2,3].map(i => <div key={i} className="skeleton skeleton-row" />)}
+                  </div>
+                </td>
               </tr>
             )}
             {!loading && filteredProjects.length === 0 && (
               <tr>
-                <td colSpan={9} className="text-center py-4 text-muted">No projects found.</td>
+                <td colSpan={9}>
+                  <div className="empty-state">
+                    <Search className="empty-state-icon" />
+                    <div className="empty-state-title">No projects found</div>
+                    <div className="empty-state-description">Adjust your search or create a new project.</div>
+                  </div>
+                </td>
               </tr>
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
 
+      <AnimatePresence>
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated"
+          >
             <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
               <h2 className="text-lg font-bold">{currentProject.id ? 'Edit Project' : 'Add Project'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
@@ -486,49 +504,51 @@ export default function ProjectManagement() {
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {isViewModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px', padding: 0, overflow: 'hidden' }}>
-            <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="150" height="40" rx="4" fill="#e3282f" />
-                  <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
-                </svg>
-                <div style={{ height: '24px', width: '2px', backgroundColor: '#cbd5e1' }}></div>
-                <h2 className="text-lg font-bold text-slate-800">Project Details</h2>
-              </div>
-              <button onClick={() => setIsViewModalOpen(false)} style={{ color: '#64748b', padding: '0.5rem', borderRadius: '50%', backgroundColor: 'white', border: '1px solid #e2e8f0', cursor: 'pointer' }} className="hover:bg-slate-50 transition-colors">
-                <X size={18} />
-              </button>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated" style={{ maxWidth: '600px', padding: 0, overflow: 'hidden' }}
+          >
+            <div className="view-modal-header">
+              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="40" rx="4" fill="#e3282f" />
+                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
+              </svg>
+              <h2 className="view-modal-header-title">Project Details</h2>
             </div>
             
-            <div style={{ padding: '2rem' }}>
-              <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+            <div style={{ padding: '0 2rem 2rem 2rem' }}>
+              <div className="view-modal-grid">
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Project Name</p>
-                  <div className="text-sm font-semibold text-slate-900 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
+                  <p className="view-modal-label">Project Name</p>
+                  <div className="view-modal-value">
                     {currentProject.name}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Project Code</p>
+                  <p className="view-modal-label">Project Code</p>
                   <div className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
                     {currentProject.code}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Project Type</p>
+                  <p className="view-modal-label">Project Type</p>
                   <div className="text-sm font-semibold text-purple-700 bg-purple-50 px-3 py-2 rounded-lg border border-purple-100">
                     {currentProject.type || 'Internal project'}
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Progress & Status</p>
+                  <p className="view-modal-label">Progress & Status</p>
                   <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 h-[38px]">
                     <span className="font-bold text-slate-700">{currentProject.progress || 0}% {currentProject.isManualProgress && '(Manual)'}</span>
                     <div style={{ height: '20px', width: '1px', backgroundColor: '#cbd5e1' }}></div>
@@ -536,7 +556,7 @@ export default function ProjectManagement() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Timeline</p>
+                  <p className="view-modal-label">Timeline</p>
                   <div className="text-sm font-medium text-slate-800 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex items-center gap-2">
                     <span className="text-slate-500">{currentProject.startDate}</span>
                     <span className="text-slate-400">→</span>
@@ -544,9 +564,9 @@ export default function ProjectManagement() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Budget & Status</p>
-                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
-                    <span className="text-sm font-bold text-emerald-600">${currentProject.budget?.toLocaleString()}</span>
+                  <p className="view-modal-label">Budget & Status</p>
+                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 h-[38px]">
+                    <span className="text-sm font-bold text-emerald-600">₹ {currentProject.budget?.toLocaleString('en-IN')}</span>
                     <div className="h-4 w-px bg-slate-300"></div>
                     <div>{getStatusBadge(currentProject.status as ProjectStatus, currentProject.id || '')}</div>
                   </div>
@@ -554,14 +574,15 @@ export default function ProjectManagement() {
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#f8fafc', padding: '1rem 2rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-primary shadow-sm" onClick={() => setIsViewModalOpen(false)}>
+            <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', backgroundColor: 'var(--card)' }}>
+              <button type="button" className="btn btn-outline" onClick={() => setIsViewModalOpen(false)}>
                 Close Window
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

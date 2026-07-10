@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type MilestoneStatus = 'Not Started' | 'In Progress' | 'Completed';
 
@@ -314,9 +315,12 @@ export default function MilestoneManagement() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+          >
             {filteredMilestones.map(milestone => (
-              <tr key={milestone.id}>
+              <motion.tr variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} key={milestone.id}>
                 <td style={{ textAlign: 'center' }}>
                   <input 
                     type="checkbox"
@@ -340,24 +344,21 @@ export default function MilestoneManagement() {
                 <td>
                   <div className="flex gap-2">
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn" 
                       title="View"
                       onClick={() => { setCurrentMilestone(milestone); setIsViewModalOpen(true); }}
                     >
                       <Eye size={16} />
                     </button>
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn" 
                       title="Edit"
                       onClick={() => { setCurrentMilestone(milestone); setIsModalOpen(true); }}
                     >
                       <Edit size={16} />
                     </button>
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem', color: 'var(--destructive)' }} 
+                      className="action-btn action-btn-danger" 
                       title="Delete"
                       onClick={() => handleDelete(milestone.id)}
                     >
@@ -365,7 +366,7 @@ export default function MilestoneManagement() {
                     </button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
             {loading && (
               <tr>
@@ -379,13 +380,20 @@ export default function MilestoneManagement() {
                 </td>
               </tr>
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
 
+      <AnimatePresence>
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated"
+          >
             <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
               <h2 className="text-lg font-bold">{currentMilestone.id ? 'Edit Milestone' : 'Add Milestone'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
@@ -514,68 +522,68 @@ export default function MilestoneManagement() {
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {isViewModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px', padding: 0, overflow: 'hidden' }}>
-            <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="150" height="40" rx="4" fill="#e3282f" />
-                  <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
-                </svg>
-                <div style={{ height: '24px', width: '2px', backgroundColor: '#cbd5e1' }}></div>
-                <h2 className="text-lg font-bold text-slate-800">Milestone Details</h2>
-              </div>
-              <button onClick={() => setIsViewModalOpen(false)} style={{ color: '#64748b', padding: '0.5rem', borderRadius: '50%', backgroundColor: 'white', border: '1px solid #e2e8f0', cursor: 'pointer' }} className="hover:bg-slate-50 transition-colors">
-                <X size={18} />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated"
+            style={{ position: 'relative' }}
+          >
+            <div className="view-modal-header">
+              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="40" rx="4" fill="#e3282f" />
+                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
+              </svg>
+              <h2 className="view-modal-header-title">Milestone Details</h2>
+              <button onClick={() => setIsViewModalOpen(false)} style={{ position: 'absolute', right: '1.5rem', top: '1.5rem', color: 'var(--muted-foreground)' }}>
+                <X size={20} />
               </button>
             </div>
-            
-            <div style={{ padding: '2rem' }}>
-              <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                <div className="col-span-2">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Milestone Name</p>
-                  <div className="text-base font-bold text-slate-900 bg-slate-50 px-3 py-3 rounded-lg border border-slate-200">
-                    {currentMilestone.name}
-                  </div>
+            <div className="view-modal-grid">
+              <div className="col-span-2">
+                <p className="view-modal-label">Milestone Name</p>
+                <div className="view-modal-value">{currentMilestone.name}</div>
+              </div>
+              <div className="col-span-2">
+                <p className="view-modal-label">Project Name</p>
+                <div className="view-modal-value text-primary">{currentMilestone.projectName}</div>
+              </div>
+              <div className="col-span-2">
+                <p className="view-modal-label">Timeline</p>
+                <div className="view-modal-value flex items-center gap-2">
+                  <span>{currentMilestone.startDate}</span>
+                  <span className="text-muted">→</span>
+                  <span>{currentMilestone.endDate}</span>
                 </div>
-                <div className="col-span-2">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Project Name</p>
-                  <div className="text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
-                    {currentMilestone.projectName}
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Timeline</p>
-                  <div className="text-sm font-medium text-slate-800 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex items-center gap-2">
-                    <span className="text-slate-500">{currentMilestone.startDate}</span>
-                    <span className="text-slate-400">→</span>
-                    <span className="text-slate-500">{currentMilestone.endDate}</span>
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Progress & Status</p>
-                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 h-[38px]">
-                    <span className="font-bold text-slate-700">{currentMilestone.progress || 0}% {currentMilestone.isManualProgress && '(Manual)'}</span>
-                    <div style={{ height: '20px', width: '1px', backgroundColor: '#cbd5e1' }}></div>
-                    <div>{getStatusBadge(currentMilestone.status as MilestoneStatus, currentMilestone.id || '')}</div>
-                  </div>
+              </div>
+              <div className="col-span-2">
+                <p className="view-modal-label">Progress & Status</p>
+                <div className="view-modal-value flex items-center gap-3">
+                  <span>{currentMilestone.progress || 0}% {currentMilestone.isManualProgress && '(Manual)'}</span>
+                  <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--border)' }}></div>
+                  <div>{getStatusBadge(currentMilestone.status as MilestoneStatus, currentMilestone.id || '')}</div>
                 </div>
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#f8fafc', padding: '1rem 2rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-primary shadow-sm" onClick={() => setIsViewModalOpen(false)}>
+            <div className="flex justify-end mt-6">
+              <button type="button" className="btn btn-primary" onClick={() => setIsViewModalOpen(false)}>
                 Close Window
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

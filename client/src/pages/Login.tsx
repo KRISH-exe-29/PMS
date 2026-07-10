@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Eye, EyeOff, LogIn, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Sparkles, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
@@ -26,6 +27,7 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -40,6 +42,7 @@ export default function Login() {
     }
     
     try {
+      setIsLoading(true);
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: username,
         password: password,
@@ -47,6 +50,7 @@ export default function Login() {
 
       if (signInError) {
         setError(signInError.message);
+        setIsLoading(false);
         return;
       }
 
@@ -55,6 +59,7 @@ export default function Login() {
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
+      setIsLoading(false);
     }
   };
 
@@ -160,7 +165,12 @@ export default function Login() {
         backgroundColor: '#ffffff',
         position: 'relative'
       }}>
-        <div style={{ width: '100%', maxWidth: '380px', padding: '2rem' }}>
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{ width: '100%', maxWidth: '380px', padding: '2rem' }}
+        >
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <Logo />
             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginTop: '1.5rem' }}>Project Management System</h2>
@@ -178,49 +188,39 @@ export default function Login() {
             )}
             
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label htmlFor="username" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+              <label htmlFor="username" className="form-label" style={{ fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 EMAIL ADDRESS
               </label>
               <input
                 id="username"
                 type="email"
+                className="form-input"
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   setError('');
                 }}
                 placeholder="name@company.com"
-                style={{
-                  width: '100%', padding: '0.875rem 1rem', borderRadius: '0.5rem',
-                  border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '0.95rem',
-                  color: '#1e293b', outline: 'none', transition: 'all 0.2s ease'
-                }}
-                onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#ffffff'; e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)'; }}
-                onBlur={(e) => { e.target.style.borderColor = '#cbd5e1'; e.target.style.backgroundColor = '#f8fafc'; e.target.style.boxShadow = 'none'; }}
+                style={{ padding: '0.875rem 1rem', fontSize: '0.95rem' }}
               />
             </div>
 
             <div className="form-group" style={{ marginBottom: '2.5rem', position: 'relative' }}>
-              <label htmlFor="password" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+              <label htmlFor="password" className="form-label" style={{ fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 PASSWORD
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
+                  className="form-input"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     setError('');
                   }}
                   placeholder="••••••••"
-                  style={{
-                    width: '100%', padding: '0.875rem 2.5rem 0.875rem 1rem', borderRadius: '0.5rem',
-                    border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '0.95rem',
-                    color: '#1e293b', outline: 'none', transition: 'all 0.2s ease'
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#ffffff'; e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = '#cbd5e1'; e.target.style.backgroundColor = '#f8fafc'; e.target.style.boxShadow = 'none'; }}
+                  style={{ padding: '0.875rem 2.5rem 0.875rem 1rem', fontSize: '0.95rem' }}
                 />
                 <button
                   type="button"
@@ -238,23 +238,20 @@ export default function Login() {
 
             <button 
               type="submit" 
+              disabled={isLoading}
+              className="btn w-full"
               style={{ 
-                width: '100%', padding: '1rem', backgroundColor: '#e3282f', color: 'white',
+                padding: '1rem', backgroundColor: '#e3282f', color: 'white',
                 border: 'none', borderRadius: '0.5rem', fontSize: '1rem', fontWeight: 600,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 12px rgba(227, 40, 47, 0.3)'
+                boxShadow: '0 4px 12px rgba(227, 40, 47, 0.3)',
+                opacity: isLoading ? 0.7 : 1
               }}
-              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#c81e24'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(227, 40, 47, 0.4)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#e3282f'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(227, 40, 47, 0.3)'; }}
-              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-              onMouseUp={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
             >
-              <LogIn size={20} />
-              Sign in to Dashboard
+              {isLoading ? <Loader2 className="animate-spin" size={20} /> : <LogIn size={20} />}
+              {isLoading ? 'Signing in...' : 'Sign in to Dashboard'}
             </button>
           </form>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

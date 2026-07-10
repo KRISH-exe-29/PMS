@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit, Trash2, X, File } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Tab = 'individual' | 'team';
 type TaskStatus = 'Started' | 'In Progress' | 'Blocked' | 'Completed';
@@ -283,17 +284,17 @@ export default function TaskManagement() {
 
   return (
     <div>
-      <div className="flex gap-4 mb-6 border-b" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="flex gap-6 mb-6" style={{ borderBottom: '1px solid var(--border)' }}>
         <button
-          className={`pb-2 ${activeTab === 'individual' ? 'font-bold text-primary border-b-2' : 'text-muted'}`}
-          style={{ borderBottomColor: activeTab === 'individual' ? 'var(--primary)' : 'transparent', borderBottomStyle: 'solid', borderBottomWidth: '2px', paddingBottom: '0.5rem' }}
+          className={`pb-2 transition-colors ${activeTab === 'individual' ? 'font-bold text-primary' : 'text-muted hover:text-foreground'}`}
+          style={{ borderBottom: activeTab === 'individual' ? '2px solid var(--primary)' : '2px solid transparent', marginBottom: '-1px' }}
           onClick={() => setActiveTab('individual')}
         >
           Internal Team
         </button>
         <button
-          className={`pb-2 ${activeTab === 'team' ? 'font-bold text-primary border-b-2' : 'text-muted'}`}
-          style={{ borderBottomColor: activeTab === 'team' ? 'var(--primary)' : 'transparent', borderBottomStyle: 'solid', borderBottomWidth: '2px', paddingBottom: '0.5rem' }}
+          className={`pb-2 transition-colors ${activeTab === 'team' ? 'font-bold text-primary' : 'text-muted hover:text-foreground'}`}
+          style={{ borderBottom: activeTab === 'team' ? '2px solid var(--primary)' : '2px solid transparent', marginBottom: '-1px' }}
           onClick={() => setActiveTab('team')}
         >
           External Team
@@ -341,9 +342,12 @@ export default function TaskManagement() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+          >
             {filteredTasks.map(task => (
-              <tr key={task.id}>
+              <motion.tr variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} key={task.id}>
                 <td className="font-medium">{task.projectCode}</td>
                 <td>{task.projectName}</td>
                 <td>{task.milestoneName}</td>
@@ -380,24 +384,21 @@ export default function TaskManagement() {
                 <td>
                   <div className="flex gap-2">
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn" 
                       title="View"
                       onClick={() => { setCurrentTask(task); setIsViewModalOpen(true); }}
                     >
                       <Eye size={16} />
                     </button>
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn" 
                       title="Edit"
                       onClick={() => { setCurrentTask(task); setIsModalOpen(true); }}
                     >
                       <Edit size={16} />
                     </button>
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem', color: 'var(--destructive)' }} 
+                      className="action-btn action-btn-danger" 
                       title="Delete"
                       onClick={() => handleDelete(task)}
                     >
@@ -405,7 +406,7 @@ export default function TaskManagement() {
                     </button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
             {loading && (
               <tr>
@@ -419,13 +420,20 @@ export default function TaskManagement() {
                 </td>
               </tr>
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
 
+      <AnimatePresence>
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated"
+          >
             <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
               <h2 className="text-lg font-bold">{currentTask.id ? 'Edit Task' : `Add ${activeTab === 'individual' ? 'Internal Team' : 'Team'} Task`}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
@@ -626,81 +634,85 @@ export default function TaskManagement() {
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {isViewModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px', padding: 0, overflow: 'hidden' }}>
-            <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="150" height="40" rx="4" fill="#e3282f" />
-                  <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
-                </svg>
-                <div style={{ height: '24px', width: '2px', backgroundColor: '#cbd5e1' }}></div>
-                <h2 className="text-lg font-bold text-slate-800">Task Details</h2>
-              </div>
-              <button onClick={() => setIsViewModalOpen(false)} style={{ color: '#64748b', padding: '0.5rem', borderRadius: '50%', backgroundColor: 'white', border: '1px solid #e2e8f0', cursor: 'pointer' }} className="hover:bg-slate-50 transition-colors">
-                <X size={18} />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated" style={{ position: 'relative' }}
+          >
+            <div className="view-modal-header">
+              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="40" rx="4" fill="#e3282f" />
+                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
+              </svg>
+              <h2 className="view-modal-header-title">Task Details</h2>
+              <button onClick={() => setIsViewModalOpen(false)} style={{ position: 'absolute', right: '1.5rem', top: '1.5rem', color: 'var(--muted-foreground)' }}>
+                <X size={20} />
               </button>
             </div>
             
-            <div style={{ padding: '2rem' }}>
-              <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                <div className="col-span-2">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Task Title</p>
-                  <div className="text-base font-bold text-slate-900 bg-slate-50 px-3 py-3 rounded-lg border border-slate-200">
-                    {currentTask.title}
-                  </div>
+            <div className="view-modal-grid">
+              <div className="col-span-2">
+                <p className="view-modal-label">Task Title</p>
+                <div className="view-modal-value">
+                  {currentTask.title}
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Project</p>
-                  <div className="text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
-                    {currentTask.projectName}
-                  </div>
+              </div>
+              <div>
+                <p className="view-modal-label">Project</p>
+                <div className="view-modal-value text-primary">
+                  {currentTask.projectName}
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Type</p>
-                  <div className="text-sm font-semibold text-slate-800 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
-                    {currentTask.type}
-                  </div>
+              </div>
+              <div>
+                <p className="view-modal-label">Type</p>
+                <div className="view-modal-value">
+                  {currentTask.type}
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Assigned To</p>
-                  <div className="text-sm font-medium text-slate-800 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex items-center gap-2">
-                    <span className="font-semibold">{currentTask.assignedTo}</span>
-                    {currentTask.role && <span className="text-slate-500 text-xs px-2 py-0.5 bg-slate-200 rounded-full">{currentTask.role}</span>}
-                  </div>
+              </div>
+              <div>
+                <p className="view-modal-label">Assigned To</p>
+                <div className="view-modal-value flex items-center gap-2">
+                  <span className="font-semibold">{currentTask.assignedTo}</span>
+                  {currentTask.role && <span className="text-muted text-xs px-2 py-0.5" style={{ backgroundColor: 'var(--secondary)', borderRadius: '9999px' }}>{currentTask.role}</span>}
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Progress & Status</p>
-                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 h-[38px]">
-                    <span className="font-bold text-slate-700">{currentTask.progress || 0}%</span>
-                    <div style={{ height: '20px', width: '1px', backgroundColor: '#cbd5e1' }}></div>
-                    <div>{getStatusBadge(currentTask.status as TaskStatus, currentTask.id || '')}</div>
-                  </div>
+              </div>
+              <div>
+                <p className="view-modal-label">Progress & Status</p>
+                <div className="flex items-center gap-3 view-modal-value">
+                  <span className="font-bold">{currentTask.progress || 0}%</span>
+                  <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--border)' }}></div>
+                  <div>{getStatusBadge(currentTask.status as TaskStatus, currentTask.id || '')}</div>
                 </div>
-                <div className="col-span-2">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Timeline</p>
-                  <div className="text-sm font-medium text-slate-800 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex items-center gap-2">
-                    <span className="text-slate-500">{currentTask.startDate}</span>
-                    <span className="text-slate-400">→</span>
-                    <span className="text-slate-500">{currentTask.endDate}</span>
-                  </div>
+              </div>
+              <div className="col-span-2">
+                <p className="view-modal-label">Timeline</p>
+                <div className="view-modal-value flex items-center gap-2">
+                  <span>{currentTask.startDate}</span>
+                  <span className="text-muted">→</span>
+                  <span>{currentTask.endDate}</span>
                 </div>
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#f8fafc', padding: '1rem 2rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-primary shadow-sm" onClick={() => setIsViewModalOpen(false)}>
+            <div className="flex justify-end mt-6">
+              <button type="button" className="btn btn-primary" onClick={() => setIsViewModalOpen(false)}>
                 Close Window
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

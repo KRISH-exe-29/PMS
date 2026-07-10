@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit, Trash2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 
 type UserStatus = 'Active' | 'Inactive' | 'On Leave';
@@ -20,6 +21,30 @@ export default function TeamManagement() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentMember, setCurrentMember] = useState<Partial<TeamMember>>({ status: 'Active' });
   
+  const fetchMembers = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data) {
+        setMembers(data.map(m => ({
+          id: m.id,
+          name: m.username || m.email?.split('@')[0] || 'Unknown User',
+          role: m.role || 'Member',
+          status: m.status || 'Active',
+          email: m.email || '',
+          joinDate: new Date(m.created_at).toLocaleDateString()
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching members:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
 
@@ -34,28 +59,6 @@ export default function TeamManagement() {
       supabase.removeChannel(subscription);
     };
   }, []);
-
-  const fetchMembers = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-
-      const formatted = data?.map(u => ({
-        id: u.id,
-        name: u.username,
-        email: u.email || '',
-        role: u.role,
-        status: u.status
-      })) || [];
-      
-      setMembers(formatted);
-    } catch (error) {
-      console.error('Error fetching team members:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredMembers = members.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -144,33 +147,33 @@ export default function TeamManagement() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+          >
             {filteredMembers.map(member => (
-              <tr key={member.id}>
+              <motion.tr variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} key={member.id}>
                 <td className="font-medium">{member.name}</td>
                 <td>{member.role}</td>
                 <td>{getStatusBadge(member.status)}</td>
                 <td>
                   <div className="flex gap-2">
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn action-btn-primary" 
                       title="View"
                       onClick={() => { setCurrentMember(member); setIsViewModalOpen(true); }}
                     >
                       <Eye size={16} />
                     </button>
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem' }} 
+                      className="action-btn action-btn-warning" 
                       title="Edit"
                       onClick={() => { setCurrentMember(member); setIsModalOpen(true); }}
                     >
                       <Edit size={16} />
                     </button>
                     <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem', color: 'var(--destructive)' }} 
+                      className="action-btn action-btn-danger" 
                       title="Delete"
                       onClick={() => handleDelete(member.id)}
                     >
@@ -178,7 +181,7 @@ export default function TeamManagement() {
                     </button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
             {loading && (
               <tr>
@@ -192,13 +195,20 @@ export default function TeamManagement() {
                 </td>
               </tr>
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
 
+      <AnimatePresence>
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated"
+          >
             <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
               <h2 className="text-lg font-bold">{currentMember.id ? 'Edit Member' : 'Add Member'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
@@ -256,58 +266,59 @@ export default function TeamManagement() {
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {isViewModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px', padding: 0, overflow: 'hidden' }}>
-            <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="150" height="40" rx="4" fill="#e3282f" />
-                  <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
-                </svg>
-                <div style={{ height: '24px', width: '2px', backgroundColor: '#cbd5e1' }}></div>
-                <h2 className="text-lg font-bold text-slate-800">Team Member Profile</h2>
-              </div>
-              <button onClick={() => setIsViewModalOpen(false)} style={{ color: '#64748b', padding: '0.5rem', borderRadius: '50%', backgroundColor: 'white', border: '1px solid #e2e8f0', cursor: 'pointer' }} className="hover:bg-slate-50 transition-colors">
-                <X size={18} />
-              </button>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="modal-content glass-elevated" style={{ maxWidth: '500px', padding: 0, overflow: 'hidden' }}
+          >
+            <div className="view-modal-header">
+              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="40" rx="4" fill="#e3282f" />
+                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
+              </svg>
+              <h2 className="view-modal-header-title">Team Member Profile</h2>
             </div>
             
-            <div style={{ padding: '2rem' }}>
-              <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+            <div style={{ padding: '0 2rem 2rem 2rem' }}>
+              <div className="view-modal-grid">
                 <div className="col-span-2">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Member Name</p>
-                  <div className="text-base font-bold text-slate-900 bg-slate-50 px-3 py-3 rounded-lg border border-slate-200">
-                    {currentMember.name}
-                  </div>
+                  <p className="view-modal-label">Member Name</p>
+                  <div className="view-modal-value">{currentMember.name}</div>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Role</p>
+                  <p className="view-modal-label">Role</p>
                   <div className="text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 inline-block">
                     {currentMember.role}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Status</p>
-                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 h-[38px]">
-                    <div>{getStatusBadge(currentMember.status as UserStatus)}</div>
+                  <p className="view-modal-label">Status</p>
+                  <div className="h-[38px] flex items-center">
+                    {getStatusBadge(currentMember.status as UserStatus)}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#f8fafc', padding: '1rem 2rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-primary shadow-sm" onClick={() => setIsViewModalOpen(false)}>
+            <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-outline" onClick={() => setIsViewModalOpen(false)}>
                 Close Window
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

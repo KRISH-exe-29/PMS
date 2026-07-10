@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Send, Search, CheckCircle, XCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface Notification {
@@ -50,7 +51,7 @@ export default function EmailNotification() {
 
   return (
     <div className="flex gap-6 flex-col lg:flex-row">
-      <div className="card" style={{ flex: '1', height: 'fit-content' }}>
+      <div className="card glass-elevated" style={{ flex: '1', height: 'fit-content' }}>
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-primary">
           <Send size={20} />
           Send Email
@@ -109,7 +110,7 @@ export default function EmailNotification() {
         </form>
       </div>
 
-      <div className="card" style={{ flex: '2' }}>
+      <div className="card glass-elevated" style={{ flex: '2' }}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold">Notification History</h2>
           <div style={{ position: 'relative', width: '250px' }}>
@@ -135,9 +136,12 @@ export default function EmailNotification() {
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody>
+            <motion.tbody
+              initial="hidden" animate="visible"
+              variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+            >
               {filteredHistory.map(item => (
-                <tr key={item.id}>
+                <motion.tr variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} key={item.id}>
                   <td>{item.recipient}</td>
                   <td className="font-medium">{item.subject}</td>
                   <td>{item.sentDate}</td>
@@ -152,7 +156,7 @@ export default function EmailNotification() {
                       </span>
                     )}
                   </td>
-                </tr>
+                </motion.tr>
               ))}
               {filteredHistory.length === 0 && (
                 <tr>
@@ -161,7 +165,7 @@ export default function EmailNotification() {
                   </td>
                 </tr>
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </div>
       </div>
