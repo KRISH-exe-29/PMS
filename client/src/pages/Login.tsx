@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Eye, EyeOff, LogIn, Sparkles, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import BlackHole from '../components/ui/BlackHole';
 
 const Logo = () => (
   <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
@@ -10,7 +11,7 @@ const Logo = () => (
       src="/logo.svg" 
       alt="INDO TECH" 
       style={{ 
-        height: '60px', 
+        height: '48px', 
         width: 'auto', 
         objectFit: 'contain',
         margin: '0 auto'
@@ -28,6 +29,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -55,7 +58,8 @@ export default function Login() {
       }
 
       if (data.user) {
-        navigate('/');
+        setIsExiting(true);
+        setTimeout(() => navigate('/'), 300);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
@@ -64,194 +68,224 @@ export default function Login() {
   };
 
   return (
-    <div style={{
+    <div 
+      data-theme="dark"
+      style={{
       minHeight: '100vh',
       display: 'flex',
-      backgroundColor: '#0f172a',
-      fontFamily: 'Inter, sans-serif'
+      flexDirection: 'column',
+      position: 'relative',
+      overflow: 'hidden',
+      backgroundColor: 'var(--color-navy-950)', // Base fallback
+      fontFamily: 'var(--font-sans)',
+      padding: 'var(--space-8)'
     }}>
-      {/* Left Column - Colorful Digitalization Vibe */}
-      <div style={{
-        flex: 1,
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4c1d95 80%, #7c3aed 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '4rem',
-        color: 'white'
-      }}>
-        {/* Abstract shapes for colorful tech vibe */}
-        <div style={{
-          position: 'absolute', top: '-10%', left: '-10%', width: '600px', height: '600px',
-          background: 'radial-gradient(circle, rgba(239,68,68,0.4) 0%, rgba(239,68,68,0) 70%)',
-          borderRadius: '50%', filter: 'blur(80px)', zIndex: 0
-        }}></div>
-        <div style={{
-          position: 'absolute', bottom: '-20%', right: '-10%', width: '700px', height: '700px',
-          background: 'radial-gradient(circle, rgba(56,189,248,0.3) 0%, rgba(56,189,248,0) 70%)',
-          borderRadius: '50%', filter: 'blur(100px)', zIndex: 0
-        }}></div>
-        
-        {/* Floating grid effect (simple CSS pattern) */}
-        <div style={{
-          position: 'absolute', inset: 0, opacity: 0.1, zIndex: 0,
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
-        }}></div>
-
-        <div style={{ position: 'relative', zIndex: 10, maxWidth: '600px' }}>
-          <div style={{ 
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem', 
-            padding: '0.5rem 1rem', borderRadius: '999px', 
-            backgroundColor: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)', marginBottom: '2rem'
-          }}>
-            <Sparkles size={16} color="#fcd34d" />
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, letterSpacing: '0.05em' }}>WELCOME TO INDOTECH</span>
-          </div>
-          
-          <h1 style={{ fontSize: '3.5rem', fontWeight: 800, lineHeight: 1.1, marginBottom: '1.5rem', textShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
-            Building Tomorrow's<br/>
-            <span style={{ 
-              background: 'linear-gradient(to right, #60a5fa, #c084fc, #f472b6)', 
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' 
-            }}>Digital Experience.</span>
-          </h1>
-          
-          <p style={{ fontSize: '1.125rem', color: '#cbd5e1', lineHeight: 1.6, marginBottom: '2.5rem', maxWidth: '480px' }}>
-            A unified platform designed for managing projects, teams, budgets, and operations efficiently.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', maxWidth: '480px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'rgba(52, 211, 153, 0.2)', color: '#34d399' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              </div>
-              <span style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>Enterprise Ready</span>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'rgba(52, 211, 153, 0.2)', color: '#34d399' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              </div>
-              <span style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>Modern Interface</span>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'rgba(52, 211, 153, 0.2)', color: '#34d399' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              </div>
-              <span style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>Fast & Secure</span>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'rgba(52, 211, 153, 0.2)', color: '#34d399' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              </div>
-              <span style={{ fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>Realtime Updates</span>
-            </div>
-          </div>
-        </div>
+      {/* Background Blackhole */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <BlackHole />
       </div>
 
-      {/* Right Column - Login Form */}
-      <div style={{
-        flex: '0 0 500px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#ffffff',
-        position: 'relative'
-      }}>
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          style={{ width: '100%', maxWidth: '380px', padding: '2rem' }}
-        >
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <Logo />
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginTop: '1.5rem' }}>Project Management System</h2>
-          </div>
+      {/* Top Static Header Content */}
+      <div style={{ position: 'relative', zIndex: 10, width: '100%', textAlign: 'center', paddingTop: '6vh', marginBottom: 'auto' }}>
+        <Logo />
+        <h1 style={{ 
+          fontSize: '1.5rem', 
+          fontWeight: 700, 
+          color: 'var(--color-text-primary)', 
+          marginTop: '1.5rem',
+          letterSpacing: '-0.02em'
+        }}>
+          Project Management System
+        </h1>
+        <p style={{ 
+          fontSize: '0.9375rem', 
+          color: 'var(--color-text-secondary)', 
+          marginTop: '0.5rem' 
+        }}>
+          Log in to access your projects, teams, and operations.
+        </p>
+      </div>
 
-          <form onSubmit={handleLogin} style={{ width: '100%' }}>
-            {error && (
-              <div style={{ 
-                backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.875rem', fontWeight: 500,
-                padding: '0.875rem', borderRadius: '0.5rem', marginBottom: '1.5rem', textAlign: 'center',
-                border: '1px solid #fecaca'
-              }}>
-                {error}
-              </div>
-            )}
-            
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label htmlFor="username" className="form-label" style={{ fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                EMAIL ADDRESS
-              </label>
-              <input
-                id="username"
-                type="email"
-                className="form-input"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setError('');
-                }}
-                placeholder="name@company.com"
-                style={{ padding: '0.875rem 1rem', fontSize: '0.95rem' }}
-              />
-            </div>
+      {/* Centered Form/Button Wrapper */}
+      <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '440px', margin: '0 auto', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBottom: '16vh' }}>
 
-            <div className="form-group" style={{ marginBottom: '2.5rem', position: 'relative' }}>
-              <label htmlFor="password" className="form-label" style={{ fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                PASSWORD
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  className="form-input"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="••••••••"
-                  style={{ padding: '0.875rem 2.5rem 0.875rem 1rem', fontSize: '0.95rem' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)',
-                    color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer',
-                    padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              className="btn w-full"
-              style={{ 
-                padding: '1rem', backgroundColor: '#e3282f', color: 'white',
-                border: 'none', borderRadius: '0.5rem', fontSize: '1rem', fontWeight: 600,
-                boxShadow: '0 4px 12px rgba(227, 40, 47, 0.3)',
-                opacity: isLoading ? 0.7 : 1
+        {/* Two-Stage Glass Tile / Button */}
+        <AnimatePresence mode="wait">
+          {!showForm ? (
+            <motion.button
+              key="stage1"
+              layoutId="login-glass"
+              onClick={() => setShowForm(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.1 } }}
+              style={{
+                width: 'auto',
+                padding: '0.875rem 2rem',
+                fontSize: '1rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                cursor: 'pointer',
+                background: 'var(--color-glass-card-bg)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: 'inset 1px 1px 0px rgba(255, 255, 255, 0.15), 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
               }}
             >
-              {isLoading ? <Loader2 className="animate-spin" size={20} /> : <LogIn size={20} />}
-              {isLoading ? 'Signing in...' : 'Sign in to Dashboard'}
-            </button>
-          </form>
-        </motion.div>
+              Click to sign in
+            </motion.button>
+          ) : (
+            <motion.div 
+              key="stage2"
+              layoutId="login-glass"
+              initial={{ opacity: 0, borderRadius: '9999px' }}
+              animate={isExiting ? { opacity: 0, scale: 0.95, y: -20, borderRadius: 'var(--radius-lg)' } : { opacity: 1, scale: 1, y: 0, borderRadius: 'var(--radius-lg)' }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                width: '100%',
+                padding: 'var(--space-8) var(--space-7)',
+                background: 'var(--color-glass-card-bg)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: 'inset 1px 1px 0px rgba(255, 255, 255, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                overflow: 'hidden'
+              }}
+            >
+              <motion.form 
+                onSubmit={handleLogin} 
+                style={{ width: '100%' }}
+                initial={{ opacity: 0, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, filter: 'blur(0px)' }}
+                transition={{ delay: 0.15, duration: 0.3 }}
+              >
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              style={{ 
+                backgroundColor: 'var(--color-danger-subtle)', 
+                color: 'var(--color-danger)', 
+                fontSize: '0.875rem', 
+                fontWeight: 500,
+                padding: '0.75rem', 
+                borderRadius: 'var(--radius-sm)', 
+                marginBottom: '1.5rem', 
+                textAlign: 'center',
+                border: '1px solid rgba(227, 30, 36, 0.2)'
+              }}
+            >
+              {error}
+            </motion.div>
+          )}
+          
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label htmlFor="username" className="form-label">
+              Email Address
+            </label>
+            <input
+              id="username"
+              type="email"
+              className="form-input"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setError('');
+              }}
+              placeholder="name@company.com"
+              style={{ 
+                padding: '0.75rem 1rem', 
+                fontSize: '0.9375rem',
+                backgroundColor: 'var(--color-input-bg)', // Solid background for legibility over blur
+              }}
+            />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '2rem', position: 'relative' }}>
+            <label htmlFor="password" className="form-label">
+              Password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                className="form-input"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                }}
+                placeholder="••••••••"
+                style={{ 
+                  padding: '0.75rem 2.5rem 0.75rem 1rem', 
+                  fontSize: '0.9375rem',
+                  backgroundColor: 'var(--color-input-bg)', // Solid background for legibility over blur
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
+                  color: 'var(--color-text-tertiary)', background: 'none', border: 'none', cursor: 'pointer',
+                  padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          <motion.button 
+            type="submit" 
+            disabled={isLoading || isExiting}
+            whileTap={{ scale: 0.97 }}
+            className="btn w-full btn-primary"
+            style={{ 
+              padding: '0.875rem', 
+              fontSize: '0.9375rem', 
+              fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(36, 81, 214, 0.25)',
+              opacity: (isLoading || isExiting) ? 0.7 : 1,
+              gap: '0.5rem',
+            }}
+          >
+            <AnimatePresence mode="wait">
+              {isLoading || isExiting ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <Loader2 className="animate-spin" size={20} />
+                  <span>Signing in...</span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="login"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <LogIn size={20} />
+                  <span>Sign in to Dashboard</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
+              </motion.form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

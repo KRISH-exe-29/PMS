@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Eye, Edit, Trash2, X } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2, Briefcase } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '../components/ui/PageHeader';
+import DataTable from '../components/ui/DataTable';
+import type { Column } from '../components/ui/DataTable';
+import StatusBadge from '../components/ui/StatusBadge';
+import FormModal from '../components/ui/FormModal';
+import EmptyState from '../components/ui/EmptyState';
 
 type ProjectStatus = 'Started' | 'In Progress' | 'Completed';
 
@@ -216,373 +221,350 @@ export default function ProjectManagement() {
     }
   };
 
-  const getStatusBadge = (status: ProjectStatus, id?: string) => {
-    if (!id) {
-       return <span className={`badge ${status === 'Completed' ? 'badge-success' : status === 'In Progress' ? 'badge-primary' : 'badge-secondary'}`}>{status}</span>;
+  const columns: Column<any>[] = [
+    {
+      key: 'code',
+      header: 'Project Code',
+      render: (p) => <span className="font-medium text-[var(--color-text-primary)]">{p.code}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Project Name',
+      render: (p) => <span className="font-semibold text-[var(--color-text-primary)]">{p.name}</span>,
+    },
+    {
+      key: 'budget',
+      header: 'Budget',
+      render: (p) => `₹ ${p.budget?.toLocaleString('en-IN') || 0}`,
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      render: (p) => (
+        <StatusBadge variant={p.type === 'External project' ? 'secondary' : 'primary'}>
+          {p.type || 'Internal project'}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'startDate',
+      header: 'Start Date',
+      render: (p) => p.startDate,
+    },
+    {
+      key: 'manager',
+      header: 'Manager',
+      render: (p) => p.managerName || '-',
+    },
+    {
+      key: 'progress',
+      header: 'Progress',
+      render: (p) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <div style={{ flex: 1, height: '6px', backgroundColor: 'var(--color-border)', borderRadius: 'var(--radius-full)', overflow: 'hidden', minWidth: '60px' }}>
+            <div style={{ height: '100%', width: `${p.progress || 0}%`, backgroundColor: (p.progress || 0) === 100 ? 'var(--color-success)' : 'var(--color-primary)' }} />
+          </div>
+          <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{p.progress || 0}%</span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (p) => (
+        <select 
+          value={p.status || 'Started'}
+          onChange={(e) => handleStatusChange(p.id, e.target.value as ProjectStatus)}
+          className={`badge ${p.status === 'Completed' ? 'badge-success' : p.status === 'In Progress' ? 'badge-primary' : 'badge-secondary'}`}
+          style={{ border: 'none', outline: 'none', cursor: 'pointer' }}
+        >
+          <option value="Started" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>Started</option>
+          <option value="In Progress" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>In Progress</option>
+          <option value="Completed" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>Completed</option>
+        </select>
+      )
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (p) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <button 
+            className="action-btn action-btn-primary" 
+            title="View"
+            onClick={() => { setCurrentProject(p); setIsViewModalOpen(true); }}
+          >
+            <Eye size={16} />
+          </button>
+          <button 
+            className="action-btn action-btn-warning" 
+            title="Edit"
+            onClick={() => { setCurrentProject(p); setIsModalOpen(true); }}
+          >
+            <Edit size={16} />
+          </button>
+          <button 
+            className="action-btn action-btn-danger" 
+            title="Delete"
+            onClick={() => handleDelete(p.id)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
     }
-    return (
-      <select 
-        value={status || 'Started'}
-        onChange={(e) => handleStatusChange(id, e.target.value as ProjectStatus)}
-        className={`badge ${status === 'Completed' ? 'badge-success' : status === 'In Progress' ? 'badge-primary' : 'badge-secondary'}`}
-        style={{ border: 'none', outline: 'none', cursor: 'pointer', fontWeight: 600 }}
-      >
-        <option value="Started" style={{ color: 'initial', background: 'white' }}>Started</option>
-        <option value="In Progress" style={{ color: 'initial', background: 'white' }}>In Progress</option>
-        <option value="Completed" style={{ color: 'initial', background: 'white' }}>Completed</option>
-      </select>
-    );
-  };
+  ];
 
   return (
-    <div>
-      <div className="page-header">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <PageHeader title="Project Management">
         <div style={{ position: 'relative', width: '300px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
+          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' }} />
           <input
             type="text"
             className="form-input"
             placeholder="Search projects..."
-            style={{ paddingLeft: '2.5rem' }}
+            style={{ paddingLeft: '2.5rem', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-4 items-center" style={{ marginLeft: 'auto' }}>
-          <select 
-            className="form-input" 
-            style={{ width: '200px', padding: '0.5rem' }}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
-          >
-            <option value="All">All Projects</option>
-            <option value="Internal project">Internal Projects</option>
-            <option value="External project">External Projects</option>
-          </select>
-          <button 
-            className="btn btn-primary"
-            onClick={() => { setCurrentProject({ status: 'Started' }); setIsModalOpen(true); }}
-          >
-            <Plus size={18} style={{ marginRight: '0.5rem' }} />
-            Add Project
+        <select 
+          className="form-input" 
+          style={{ width: '200px' }}
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as any)}
+        >
+          <option value="All">All Projects</option>
+          <option value="Internal project">Internal Projects</option>
+          <option value="External project">External Projects</option>
+        </select>
+        <button 
+          className="btn btn-primary"
+          onClick={() => { setCurrentProject({ status: 'Started' }); setIsModalOpen(true); }}
+        >
+          <Plus size={18} style={{ marginRight: 'var(--space-2)' }} />
+          Add Project
+        </button>
+      </PageHeader>
+
+      <div className="card p-0" style={{ overflow: 'hidden' }}>
+        <DataTable
+          columns={columns}
+          data={filteredProjects}
+          keyExtractor={(p) => p.id}
+          loading={loading}
+          emptyState={
+            <EmptyState
+              icon={<Briefcase size={48} />}
+              title="No projects found"
+              description="Adjust your search or create a new project to get started."
+            />
+          }
+        />
+      </div>
+
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={currentProject.id ? 'Edit Project' : 'Add Project'}
+        maxWidth="700px"
+        footer={
+          <>
+            <button type="button" className="btn" style={{ background: 'transparent', color: 'var(--color-text-secondary)' }} onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" form="project-form" className="btn btn-primary">
+              Save Project
+            </button>
+          </>
+        }
+      >
+        <form id="project-form" onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="form-group">
+            <label className="form-label">Project Name</label>
+            <input 
+              required 
+              type="text" 
+              className="form-input" 
+              value={currentProject.name || ''} 
+              onChange={e => setCurrentProject({...currentProject, name: e.target.value})} 
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Project Code</label>
+              <input 
+                required 
+                type="text" 
+                className="form-input" 
+                value={currentProject.code || ''} 
+                onChange={e => setCurrentProject({...currentProject, code: e.target.value})} 
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Project Type</label>
+              <select 
+                className="form-input"
+                value={currentProject.type || 'Internal project'}
+                onChange={e => setCurrentProject({...currentProject, type: e.target.value as any})}
+              >
+                <option value="Internal project">Internal project</option>
+                <option value="External project">External project</option>
+              </select>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea 
+              className="form-input" 
+              rows={3}
+              value={currentProject.description || ''} 
+              onChange={e => setCurrentProject({...currentProject, description: e.target.value})} 
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Start Date</label>
+              <input 
+                required 
+                type="date" 
+                className="form-input" 
+                value={currentProject.startDate || ''} 
+                onChange={e => setCurrentProject({...currentProject, startDate: e.target.value})} 
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">End Date</label>
+              <input 
+                required 
+                type="date" 
+                className="form-input" 
+                value={currentProject.endDate || ''} 
+                onChange={e => setCurrentProject({...currentProject, endDate: e.target.value})} 
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Budget (₹)</label>
+              <input 
+                required 
+                type="text" 
+                className="form-input" 
+                value={currentProject.budget !== undefined ? currentProject.budget : ''} 
+                onChange={e => {
+                  const val = e.target.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+                  setCurrentProject({...currentProject, budget: val ? Number(val) : 0});
+                }}
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
+                <label className="form-label" style={{ margin: 0 }}>Progress (%)</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.75rem', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={currentProject.isManualProgress || false}
+                    onChange={e => setCurrentProject({...currentProject, isManualProgress: e.target.checked})}
+                  />
+                  Override Auto-Calculation
+                </label>
+              </div>
+              <input 
+                type="number"
+                min="0"
+                max="100" 
+                className="form-input" 
+                value={currentProject.progress || 0} 
+                disabled={!currentProject.isManualProgress}
+                onChange={e => setCurrentProject({...currentProject, progress: parseInt(e.target.value) || 0})} 
+                style={{ backgroundColor: !currentProject.isManualProgress ? 'var(--color-bg-subtle)' : 'var(--color-surface)' }}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Status</label>
+              <select 
+                className="form-input"
+                value={currentProject.status || 'Started'}
+                onChange={e => setCurrentProject({...currentProject, status: e.target.value as ProjectStatus})}
+              >
+                <option value="Started">Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </FormModal>
+
+      <FormModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Project Details"
+        maxWidth="600px"
+        footer={
+          <button type="button" className="btn" style={{ background: 'var(--color-bg-subtle)', color: 'var(--color-text-primary)' }} onClick={() => setIsViewModalOpen(false)}>
+            Close Window
           </button>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Project Name</p>
+              <div style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                {currentProject.name}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Project Code</p>
+              <div style={{ display: 'inline-block', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary)', backgroundColor: 'var(--color-primary-subtle)', padding: 'var(--space-1) var(--space-3)', borderRadius: 'var(--radius-md)' }}>
+                {currentProject.code}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Project Type</p>
+            <StatusBadge variant={currentProject.type === 'External project' ? 'secondary' : 'primary'}>
+              {currentProject.type || 'Internal project'}
+            </StatusBadge>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Progress & Status</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{currentProject.progress || 0}% {currentProject.isManualProgress && '(Manual)'}</span>
+                <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--color-border)' }}></div>
+                <StatusBadge variant={currentProject.status === 'Completed' ? 'success' : currentProject.status === 'In Progress' ? 'primary' : 'secondary'}>
+                  {currentProject.status}
+                </StatusBadge>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Timeline</p>
+            <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>{currentProject.startDate}</span>
+              <span style={{ color: 'var(--color-text-tertiary)' }}>→</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>{currentProject.endDate}</span>
+            </div>
+          </div>
+
+          <div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Budget</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-success)' }}>₹ {currentProject.budget?.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Project Code</th>
-              <th>Project Name</th>
-              <th>Budget</th>
-              <th>Type</th>
-              <th>Start Date</th>
-              <th>Manager</th>
-              <th>Progress</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <motion.tbody
-            initial="hidden" animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
-          >
-            {filteredProjects.map(project => (
-              <motion.tr variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} key={project.id}>
-                <td className="font-medium">{project.code}</td>
-                <td>{project.name}</td>
-                <td>₹ {project.budget.toLocaleString('en-IN')}</td>
-                <td>
-                  <span className={`badge ${project.type === 'External project' ? 'badge-secondary' : 'badge-primary'}`}>
-                    {project.type || 'Internal project'}
-                  </span>
-                </td>
-                <td>{project.startDate}</td>
-                <td>{project.managerName || '-'}</td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1" style={{ height: '6px', backgroundColor: 'var(--border)', borderRadius: '3px', overflow: 'hidden', width: '60px' }}>
-                      <div style={{ height: '100%', width: `${project.progress || 0}%`, backgroundColor: (project.progress || 0) === 100 ? 'var(--success)' : 'var(--primary)' }} />
-                    </div>
-                    <span className="text-xs font-medium">{project.progress || 0}%</span>
-                  </div>
-                </td>
-                <td>{getStatusBadge(project.status as ProjectStatus, project.id)}</td>
-                <td>
-                  <div className="flex gap-2">
-                    <button 
-                      className="action-btn action-btn-primary" 
-                      title="View"
-                      onClick={() => { setCurrentProject(project); setIsViewModalOpen(true); }}
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button 
-                      className="action-btn action-btn-warning" 
-                      title="Edit"
-                      onClick={() => { setCurrentProject(project); setIsModalOpen(true); }}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      className="action-btn action-btn-danger" 
-                      title="Delete"
-                      onClick={() => handleDelete(project.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </motion.tr>
-            ))}
-            {loading && (
-              <tr>
-                <td colSpan={9} style={{ padding: '2rem' }}>
-                  <div className="flex flex-col gap-4">
-                    {[1,2,3].map(i => <div key={i} className="skeleton skeleton-row" />)}
-                  </div>
-                </td>
-              </tr>
-            )}
-            {!loading && filteredProjects.length === 0 && (
-              <tr>
-                <td colSpan={9}>
-                  <div className="empty-state">
-                    <Search className="empty-state-icon" />
-                    <div className="empty-state-title">No projects found</div>
-                    <div className="empty-state-description">Adjust your search or create a new project.</div>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </motion.tbody>
-        </table>
-      </div>
-
-      <AnimatePresence>
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="modal-content glass-elevated"
-          >
-            <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
-              <h2 className="text-lg font-bold">{currentProject.id ? 'Edit Project' : 'Add Project'}</h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSave}>
-              <div className="form-group">
-                <label className="form-label">Project Name</label>
-                <input 
-                  required 
-                  type="text" 
-                  className="form-input" 
-                  value={currentProject.name || ''} 
-                  onChange={e => setCurrentProject({...currentProject, name: e.target.value})} 
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Project Code</label>
-                  <input 
-                    required 
-                    type="text" 
-                    className="form-input" 
-                    value={currentProject.code || ''} 
-                    onChange={e => setCurrentProject({...currentProject, code: e.target.value})} 
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">Project Type</label>
-                  <select 
-                    className="form-input"
-                    value={currentProject.type || 'Internal project'}
-                    onChange={e => setCurrentProject({...currentProject, type: e.target.value as any})}
-                  >
-                    <option value="Internal project">Internal project</option>
-                    <option value="External project">External project</option>
-                  </select>
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Description</label>
-                <textarea 
-                  className="form-input" 
-                  rows={3}
-                  value={currentProject.description || ''} 
-                  onChange={e => setCurrentProject({...currentProject, description: e.target.value})} 
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Start Date</label>
-                  <input 
-                    required 
-                    type="date" 
-                    className="form-input" 
-                    value={currentProject.startDate || ''} 
-                    onChange={e => setCurrentProject({...currentProject, startDate: e.target.value})} 
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">End Date</label>
-                  <input 
-                    required 
-                    type="date" 
-                    className="form-input" 
-                    value={currentProject.endDate || ''} 
-                    onChange={e => setCurrentProject({...currentProject, endDate: e.target.value})} 
-                  />
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Budget ($)</label>
-                  <input 
-                    required 
-                    type="text" 
-                    className="form-input" 
-                    value={currentProject.budget !== undefined ? currentProject.budget : ''} 
-                    onChange={e => {
-                      const val = e.target.value.replace(/,/g, '').replace(/[^\d.]/g, '');
-                      setCurrentProject({...currentProject, budget: val ? Number(val) : 0});
-                    }}
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="form-label" style={{ marginBottom: 0 }}>Progress (%)</label>
-                    <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={currentProject.isManualProgress || false}
-                        onChange={e => setCurrentProject({...currentProject, isManualProgress: e.target.checked})}
-                      />
-                      Override Auto-Calculation
-                    </label>
-                  </div>
-                  <input 
-                    type="number"
-                    min="0"
-                    max="100" 
-                    className="form-input" 
-                    value={currentProject.progress || 0} 
-                    disabled={!currentProject.isManualProgress}
-                    onChange={e => setCurrentProject({...currentProject, progress: parseInt(e.target.value) || 0})} 
-                    style={{ backgroundColor: !currentProject.isManualProgress ? '#f1f5f9' : 'white' }}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Status</label>
-                  <select 
-                    className="form-input"
-                    value={currentProject.status}
-                    onChange={e => setCurrentProject({...currentProject, status: e.target.value as ProjectStatus})}
-                  >
-                    <option value="Started">Started</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-2" style={{ marginTop: '2rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-      {isViewModalOpen && (
-        <div className="modal-overlay">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="modal-content glass-elevated" style={{ maxWidth: '600px', padding: 0, overflow: 'hidden' }}
-          >
-            <div className="view-modal-header">
-              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="150" height="40" rx="4" fill="#e3282f" />
-                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
-              </svg>
-              <h2 className="view-modal-header-title">Project Details</h2>
-            </div>
-            
-            <div style={{ padding: '0 2rem 2rem 2rem' }}>
-              <div className="view-modal-grid">
-                <div>
-                  <p className="view-modal-label">Project Name</p>
-                  <div className="view-modal-value">
-                    {currentProject.name}
-                  </div>
-                </div>
-                <div>
-                  <p className="view-modal-label">Project Code</p>
-                  <div className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
-                    {currentProject.code}
-                  </div>
-                </div>
-                <div>
-                  <p className="view-modal-label">Project Type</p>
-                  <div className="text-sm font-semibold text-purple-700 bg-purple-50 px-3 py-2 rounded-lg border border-purple-100">
-                    {currentProject.type || 'Internal project'}
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <p className="view-modal-label">Progress & Status</p>
-                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 h-[38px]">
-                    <span className="font-bold text-slate-700">{currentProject.progress || 0}% {currentProject.isManualProgress && '(Manual)'}</span>
-                    <div style={{ height: '20px', width: '1px', backgroundColor: '#cbd5e1' }}></div>
-                    <div>{getStatusBadge(currentProject.status as ProjectStatus)}</div>
-                  </div>
-                </div>
-                <div>
-                  <p className="view-modal-label">Timeline</p>
-                  <div className="text-sm font-medium text-slate-800 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 flex items-center gap-2">
-                    <span className="text-slate-500">{currentProject.startDate}</span>
-                    <span className="text-slate-400">→</span>
-                    <span className="text-slate-500">{currentProject.endDate}</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="view-modal-label">Budget & Status</p>
-                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 h-[38px]">
-                    <span className="text-sm font-bold text-emerald-600">₹ {currentProject.budget?.toLocaleString('en-IN')}</span>
-                    <div className="h-4 w-px bg-slate-300"></div>
-                    <div>{getStatusBadge(currentProject.status as ProjectStatus, currentProject.id || '')}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', backgroundColor: 'var(--card)' }}>
-              <button type="button" className="btn btn-outline" onClick={() => setIsViewModalOpen(false)}>
-                Close Window
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-      </AnimatePresence>
+      </FormModal>
     </div>
   );
 }

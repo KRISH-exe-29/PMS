@@ -3,7 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
+import { useTheme } from '../lib/theme';
+import KPICard from '../components/ui/KPICard';
 export default function Dashboard() {
+  const { theme } = useTheme();
   const [projects, setProjects] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -88,28 +91,40 @@ export default function Dashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Completed': return { bg: '#dcfce7', text: '#16a34a', bar: '#16a34a', percent: '100%' };
-      case 'In Progress': return { bg: '#dbeafe', text: '#2563eb', bar: '#2563eb', percent: '50%' };
-      case 'Started': return { bg: '#e0e7ff', text: '#4f46e5', bar: '#4f46e5', percent: '20%' };
-      case 'Blocked': return { bg: '#fee2e2', text: '#dc2626', bar: '#dc2626', percent: '10%' };
-      default: return { bg: '#f1f5f9', text: '#64748b', bar: '#cbd5e1', percent: '0%' };
+      case 'Completed': return { bg: 'var(--color-success-subtle)', text: 'var(--color-success)', bar: 'var(--color-success)', percent: '100%' };
+      case 'In Progress': return { bg: 'var(--color-info-subtle)', text: 'var(--color-primary)', bar: 'var(--color-primary)', percent: '50%' };
+      case 'Started': return { bg: 'var(--color-primary-subtle)', text: 'var(--color-navy-600)', bar: 'var(--color-navy-600)', percent: '20%' };
+      case 'Blocked': return { bg: 'var(--color-danger-subtle)', text: 'var(--color-danger)', bar: 'var(--color-danger)', percent: '10%' };
+      default: return { bg: 'var(--color-bg-subtle)', text: 'var(--color-text-secondary)', bar: 'var(--color-slate-300)', percent: '0%' };
     }
   };
 
-  // Data for Charts
+  // Chart colors — Navy-based palette
+  const chartColors = {
+    completed: '#10b981',
+    inProgress: theme === 'dark' ? '#6085f5' : '#2451d6',
+    started: theme === 'dark' ? '#93b0ff' : '#3b5fe0',
+    blocked: '#e31e24',
+    notStarted: theme === 'dark' ? '#475569' : '#cbd5e1',
+    tooltip: theme === 'dark' ? '#1a2235' : '#ffffff',
+    tooltipText: theme === 'dark' ? '#f1f5f9' : '#0f172a',
+    grid: theme === 'dark' ? '#293548' : '#e2e8f0',
+    axisText: theme === 'dark' ? '#94a3b8' : '#64748b',
+  };
+
   const projectStatusData = [
-    { name: 'Completed', value: projects.filter(p => p.status === 'Completed').length, color: '#10b981' },
-    { name: 'In Progress', value: projects.filter(p => p.status === 'In Progress').length, color: '#3b82f6' },
-    { name: 'Started', value: projects.filter(p => p.status === 'Started').length, color: '#8b5cf6' },
-    { name: 'Blocked', value: projects.filter(p => p.status === 'Blocked').length, color: '#ef4444' },
-    { name: 'Not Started', value: projects.filter(p => !p.status || p.status === 'Not Started').length, color: '#cbd5e1' }
+    { name: 'Completed', value: projects.filter(p => p.status === 'Completed').length, color: chartColors.completed },
+    { name: 'In Progress', value: projects.filter(p => p.status === 'In Progress').length, color: chartColors.inProgress },
+    { name: 'Started', value: projects.filter(p => p.status === 'Started').length, color: chartColors.started },
+    { name: 'Blocked', value: projects.filter(p => p.status === 'Blocked').length, color: chartColors.blocked },
+    { name: 'Not Started', value: projects.filter(p => !p.status || p.status === 'Not Started').length, color: chartColors.notStarted }
   ].filter(d => d.value > 0);
 
   const taskStatusData = [
-    { name: 'Completed', count: tasks.filter(t => t.status === 'Completed').length, fill: '#10b981' },
-    { name: 'In Progress', count: tasks.filter(t => t.status === 'In Progress').length, fill: '#3b82f6' },
-    { name: 'Not Started', count: tasks.filter(t => !t.status || t.status === 'Not Started').length, fill: '#cbd5e1' },
-    { name: 'Blocked', count: tasks.filter(t => t.status === 'Blocked').length, fill: '#ef4444' }
+    { name: 'Completed', count: tasks.filter(t => t.status === 'Completed').length, fill: chartColors.completed },
+    { name: 'In Progress', count: tasks.filter(t => t.status === 'In Progress').length, fill: chartColors.inProgress },
+    { name: 'Not Started', count: tasks.filter(t => !t.status || t.status === 'Not Started').length, fill: chartColors.notStarted },
+    { name: 'Blocked', count: tasks.filter(t => t.status === 'Blocked').length, fill: chartColors.blocked }
   ].filter(d => d.count > 0);
 
   if (loading) {
@@ -126,82 +141,55 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-2">
+    <div className="flex flex-col gap-6 p-2" aria-label="Dashboard View">
       {/* Metrics Row */}
       <motion.div 
         initial="hidden" animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
         style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}
       >
-        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-sm font-medium text-muted">Total Projects</p>
-              <h3 className="text-3xl mt-1 text-slate-800" style={{ fontWeight: 'var(--font-weight-display)' }}>{projects.length}</h3>
+        <KPICard
+          title="Total Projects"
+          value={projects.length}
+          icon={Briefcase}
+          iconColor="var(--color-primary)"
+          iconBg="var(--color-primary-subtle)"
+          subtitle={<span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs">+Active tracking</span>}
+        />
+        <KPICard
+          title="Active Milestones"
+          value={activeMilestones}
+          icon={CalendarDays}
+          iconColor="var(--color-warning)"
+          iconBg="var(--color-warning-subtle)"
+          subtitle={<span className="font-medium text-muted">Across all projects</span>}
+        />
+        <KPICard
+          title="Total Tasks"
+          value={tasks.length}
+          icon={CheckSquare}
+          iconColor="var(--color-success)"
+          iconBg="var(--color-success-subtle)"
+          subtitle={
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md text-xs">{tasksCompleted} completed</span>
+              <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs">{tasksInProgress} in progress</span>
             </div>
-            <div className="p-3 rounded-xl bg-blue-50 text-blue-700 shadow-sm">
-              <Briefcase size={24} />
-            </div>
-          </div>
-          <div className="text-sm flex items-center gap-1">
-            <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs">+Active tracking</span>
-          </div>
-        </motion.div>
-
-        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-sm font-medium text-muted">Active Milestones</p>
-              <h3 className="text-3xl mt-1 text-slate-800" style={{ fontWeight: 'var(--font-weight-display)' }}>{activeMilestones}</h3>
-            </div>
-            <div className="p-3 rounded-xl bg-warning/10 text-warning shadow-sm">
-              <CalendarDays size={24} />
-            </div>
-          </div>
-          <div className="text-sm">
-            <span className="font-medium text-muted">Across all projects</span>
-          </div>
-        </motion.div>
-
-        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-sm font-medium text-muted">Total Tasks</p>
-              <h3 className="text-3xl mt-1 text-slate-800" style={{ fontWeight: 'var(--font-weight-display)' }}>{tasks.length}</h3>
-            </div>
-            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-700 shadow-sm">
-              <CheckSquare size={24} />
-            </div>
-          </div>
-          <div className="text-sm flex items-center gap-2">
-            <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md text-xs">{tasksCompleted} completed</span>
-            <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-xs">{tasksInProgress} in progress</span>
-          </div>
-        </motion.div>
-
-        <motion.div variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} className="card glass-elevated">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-sm font-medium text-muted">Remaining Budget</p>
-              <h3 className="text-3xl mt-1 text-slate-800" style={{ fontWeight: 'var(--font-weight-display)' }}>
-                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(remainingBudget)}
-              </h3>
-            </div>
-            <div className="p-3 rounded-xl" style={{ backgroundColor: '#f3e8ff', color: '#9333ea' }}>
-              <DollarSign size={24} />
-            </div>
-          </div>
-          <div className="text-sm">
-            <span className="font-medium text-muted">
-              {actualCost > 0 ? `${Math.round((actualCost / totalPlannedBudget) * 100) || 0}% used of total` : 'No expenses yet'}
-            </span>
-          </div>
-        </motion.div>
+          }
+        />
+        <KPICard
+          title="Remaining Budget"
+          value={new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(remainingBudget)}
+          icon={DollarSign}
+          iconColor="var(--color-info)"
+          iconBg="var(--color-info-subtle)"
+          subtitle={<span className="font-medium text-muted">{actualCost > 0 ? `${Math.round((actualCost / totalPlannedBudget) * 100) || 0}% used of total` : 'No expenses yet'}</span>}
+        />
       </motion.div>
 
       {/* Pictorial Representation (Charts) Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
-        <div className="card glass-elevated">
+        <div className="card">
           <div className="flex items-center gap-2 mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <PieChartIcon size={20} style={{ color: '#2563eb' }} />
             <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Project Status Distribution</h2>
@@ -224,8 +212,8 @@ export default function Dashboard() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
-                  <Legend />
+                  <Tooltip contentStyle={{ background: chartColors.tooltip, border: `1px solid ${chartColors.grid}`, borderRadius: 8, color: chartColors.tooltipText }} />
+                  <Legend wrapperStyle={{ color: chartColors.axisText }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -236,7 +224,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="card glass-elevated">
+        <div className="card">
           <div className="flex items-center gap-2 mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <BarChart2 size={20} style={{ color: '#10b981' }} />
             <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Tasks Progress Overview</h2>
@@ -245,9 +233,9 @@ export default function Dashboard() {
             {taskStatusData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={taskStatusData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip cursor={{ fill: '#f1f5f9' }} />
+                  <XAxis dataKey="name" tick={{ fill: chartColors.axisText, fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tick={{ fill: chartColors.axisText, fontSize: 12 }} />
+                  <Tooltip contentStyle={{ background: chartColors.tooltip, border: `1px solid ${chartColors.grid}`, borderRadius: 8, color: chartColors.tooltipText }} cursor={{ fill: chartColors.grid }} />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {taskStatusData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -266,7 +254,7 @@ export default function Dashboard() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
         {/* Recent Projects Table */}
-        <div className="card glass-elevated table-container" style={{ flex: '2', minWidth: '400px' }}>
+        <div className="card table-container" style={{ flex: '2', minWidth: '400px' }}>
           <div className="flex justify-between items-center mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <h2 className="text-lg font-bold text-slate-800">Recent Projects</h2>
             <span className="font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full cursor-pointer hover:bg-blue-100 transition-colors">View All</span>
@@ -329,7 +317,7 @@ export default function Dashboard() {
         </div>
 
         {/* Upcoming Deadlines */}
-        <div className="card glass-elevated" style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column' }}>
+        <div className="card" style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column' }}>
           <div className="flex justify-between items-center mb-4 pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Upcoming Deadlines</h2>
           </div>
@@ -341,11 +329,11 @@ export default function Dashboard() {
                 { bg: '#fee2e2', text: '#dc2626' }, // red
                 { bg: '#fef9c3', text: '#ca8a04' }, // yellow
                 { bg: '#dbeafe', text: '#2563eb' }, // blue
-                { bg: '#f3e8ff', text: '#9333ea' }, // purple
+                { bg: '#cffafe', text: '#0891b2' }, // cyan
                 { bg: '#fee2e2', text: '#dc2626' },
                 { bg: '#fef9c3', text: '#ca8a04' },
                 { bg: '#dbeafe', text: '#2563eb' },
-                { bg: '#f3e8ff', text: '#9333ea' },
+                { bg: '#cffafe', text: '#0891b2' },
               ];
               const colorTheme = colors[i % colors.length];
 

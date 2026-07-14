@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Gantt, ViewMode, type Task } from 'gantt-task-react';
+import { Search } from 'lucide-react';
+import PageHeader from '../components/ui/PageHeader';
+import { motion, AnimatePresence } from 'framer-motion';
 import 'gantt-task-react/dist/index.css';
 
 type Tab = 'team' | 'individual';
 
 const CustomTaskListHeader: React.FC<{ headerHeight: number; rowWidth: string; fontFamily: string; fontSize: string }> = ({ headerHeight, fontFamily, fontSize }) => {
   return (
-    <div style={{ display: 'flex', height: headerHeight, fontFamily, fontSize, borderBottom: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase' }}>
+    <div style={{ display: 'flex', height: headerHeight, fontFamily, fontSize, borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-subtle)', color: 'var(--color-text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
       <div style={{ flex: 1, minWidth: '150px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>Name</div>
       <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>From</div>
       <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>To</div>
@@ -40,19 +43,23 @@ const CustomTaskListTable: React.FC<{
         return (
           <div 
             key={t.id} 
-            style={{ display: 'flex', height: rowHeight, fontFamily, borderBottom: '1px solid var(--border)', backgroundColor: t.id === selectedTaskId ? 'rgba(255, 255, 255, 0.45)' : 'transparent', color: 'var(--foreground)', transition: 'background-color 0.2s ease', cursor: 'pointer' }}
+            style={{ display: 'flex', height: rowHeight, fontFamily, borderBottom: '1px solid var(--color-border)', backgroundColor: t.id === selectedTaskId ? 'var(--color-bg-subtle)' : 'transparent', color: 'var(--color-text-primary)', transition: 'background-color 0.2s ease', cursor: 'pointer' }}
             onClick={() => setSelectedTask(t.id)}
-            onMouseEnter={(e) => { if (t.id !== selectedTaskId) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'; }}
+            onMouseEnter={(e) => { if (t.id !== selectedTaskId) e.currentTarget.style.backgroundColor = 'var(--color-bg-subtle)'; }}
             onMouseLeave={(e) => { if (t.id !== selectedTaskId) e.currentTarget.style.backgroundColor = 'transparent'; }}
           >
              <div style={{ flex: 1, minWidth: '150px', padding: '0 10px', paddingLeft, display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                {expander}
-               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px' }} title={t.name}>{t.name}</span>
+               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '14px', fontWeight: t.id.startsWith('t-') ? 400 : 600 }} title={t.name}>{t.name}</span>
              </div>
              <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>{t.start.toLocaleDateString('en-GB')}</div>
              <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>{t.end.toLocaleDateString('en-GB')}</div>
-             <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>{(t as any).statusStr || '-'}</div>
-             <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 'bold' }}>{durationDays} d</div>
+             <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px' }}>
+               <span className={`badge ${(t as any).statusStr === 'Completed' ? 'badge-success' : (t as any).statusStr === 'In Progress' ? 'badge-primary' : 'badge-secondary'}`} style={{ padding: '2px 6px', fontSize: '10px' }}>
+                 {(t as any).statusStr || '-'}
+               </span>
+             </div>
+             <div style={{ width: '80px', padding: '0 10px', display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 600 }}>{durationDays} d</div>
           </div>
         );
       })}
@@ -64,11 +71,11 @@ const CustomTooltip: React.FC<{ task: Task; fontSize: string; fontFamily: string
   const durationMs = task.end.getTime() - task.start.getTime();
   const durationDays = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60 * 24)));
   return (
-    <div className="glass-elevated" style={{ padding: '12px', border: `2px solid ${task.styles?.backgroundColor || 'var(--border)'}`, fontFamily, fontSize }}>
-      <b style={{ fontSize: '14px', display: 'block', marginBottom: '4px', color: task.styles?.backgroundColor || 'var(--foreground)' }}>{task.name}</b>
-      <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>Start: {task.start.toLocaleDateString('en-GB')}</div>
-      <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>End: {task.end.toLocaleDateString('en-GB')}</div>
-      <div style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '4px', color: task.styles?.backgroundColor || 'var(--foreground)' }}>
+    <div className="card" style={{ padding: '12px', border: `2px solid ${task.styles?.backgroundColor || 'var(--color-border)'}`, fontFamily, fontSize }}>
+      <b style={{ fontSize: '14px', display: 'block', marginBottom: '4px', color: task.styles?.backgroundColor || 'var(--color-text-primary)' }}>{task.name}</b>
+      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Start: {task.start.toLocaleDateString('en-GB')}</div>
+      <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>End: {task.end.toLocaleDateString('en-GB')}</div>
+      <div style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '4px', color: task.styles?.backgroundColor || 'var(--color-text-primary)' }}>
         Duration: {durationDays} Days
       </div>
     </div>
@@ -83,10 +90,10 @@ export default function GanttChart() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const getColor = (status: string) => {
-    if (status === 'On Hold' || status === 'Hold') return '#854d0e'; // Brown
-    if (status === 'Completed') return '#22c55e'; // Green
-    if (status === 'Started' || status === 'In Progress') return '#eab308'; // Yellow
-    return '#94a3b8'; // Grey (Not Started)
+    if (status === 'On Hold' || status === 'Hold') return 'var(--color-danger)';
+    if (status === 'Completed') return 'var(--color-success)';
+    if (status === 'Started' || status === 'In Progress') return 'var(--color-primary)';
+    return 'var(--color-secondary)';
   };
 
   const getValidDate = (...dateStrs: (string | null | undefined)[]) => {
@@ -325,98 +332,166 @@ export default function GanttChart() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center border-b pb-4">
-        <div className="flex gap-4">
-          <button
-            className={`pb-2 ${activeTab === 'individual' ? 'font-bold text-primary border-b-2' : 'text-muted'}`}
-            style={{ borderBottomColor: activeTab === 'individual' ? 'var(--primary)' : 'transparent', borderBottomStyle: 'solid', borderBottomWidth: '2px', paddingBottom: '0.5rem', transition: 'all 0.2s ease' }}
-            onClick={() => setActiveTab('individual')}
-          >
-            Internal Team Gantt Chart
-          </button>
-          <button
-            className={`pb-2 ${activeTab === 'team' ? 'font-bold text-primary border-b-2' : 'text-muted'}`}
-            style={{ borderBottomColor: activeTab === 'team' ? 'var(--primary)' : 'transparent', borderBottomStyle: 'solid', borderBottomWidth: '2px', paddingBottom: '0.5rem', transition: 'all 0.2s ease' }}
-            onClick={() => setActiveTab('team')}
-          >
-            External Team Gantt Chart
-          </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <PageHeader title="Gantt Chart">
+        <div style={{ display: 'flex', gap: 'var(--space-2)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-1)', borderRadius: 'var(--radius-md)' }}>
+          {([
+            { id: 'individual', label: 'Internal Team' },
+            { id: 'team', label: 'External Team' }
+          ] as const).map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                className="btn btn-sm"
+                style={{ 
+                  position: 'relative',
+                  background: 'transparent', 
+                  color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', 
+                  border: 'none',
+                  fontWeight: isActive ? 600 : 500,
+                  zIndex: 1
+                }}
+                onClick={() => setActiveTab(tab.id as Tab)}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="gantt-active-tab"
+                    style={{
+                      position: 'absolute', inset: 0,
+                      backgroundColor: 'var(--color-surface)',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: 'var(--shadow-sm)',
+                      zIndex: -1
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1 }}>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="w-64 relative">
-             <input 
-               type="text" 
-               className="form-input" 
-               placeholder="Search projects..." 
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-             />
-          </div>
+      </PageHeader>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ position: 'relative', width: '300px' }}>
+          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' }} />
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Search projects..."
+            style={{ paddingLeft: '2.5rem', width: '100%' }}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
 
-          <div className="flex gap-2">
-            <button className={`btn btn-sm ${viewMode === ViewMode.Day ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Day)}>Day</button>
-            <button className={`btn btn-sm ${viewMode === ViewMode.Week ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Week)}>Week</button>
-            <button className={`btn btn-sm ${viewMode === ViewMode.Month ? 'btn-primary' : 'btn-outline'}`} onClick={() => setViewMode(ViewMode.Month)}>Month</button>
-          </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-1)', borderRadius: 'var(--radius-md)' }}>
+          {[
+            { id: ViewMode.Day, label: 'Day' },
+            { id: ViewMode.Week, label: 'Week' },
+            { id: ViewMode.Month, label: 'Month' }
+          ].map((mode) => {
+            const isActive = viewMode === mode.id;
+            return (
+              <button
+                key={mode.id}
+                className="btn btn-sm"
+                style={{ 
+                  position: 'relative',
+                  background: 'transparent', 
+                  color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', 
+                  border: 'none',
+                  fontWeight: isActive ? 600 : 500,
+                  zIndex: 1
+                }}
+                onClick={() => setViewMode(mode.id as ViewMode)}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="gantt-viewmode-tab"
+                    style={{
+                      position: 'absolute', inset: 0,
+                      backgroundColor: 'var(--color-surface)',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: 'var(--shadow-sm)',
+                      zIndex: -1
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1 }}>{mode.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="card glass-card overflow-hidden" style={{ padding: '1.5rem' }}>
-        {loading ? (
-           <div className="p-8 text-center text-muted-foreground">Loading Professional Gantt Chart...</div>
-        ) : tasks.length > 0 ? (() => {
-          
-          let filteredTasks = tasks;
-          if (searchQuery.trim() !== '') {
-             const lowerQuery = searchQuery.toLowerCase();
-             const matchingProjectIds = new Set(tasks.filter(t => t.id.startsWith('p-') && t.name.toLowerCase().includes(lowerQuery)).map(t => t.id));
-             filteredTasks = tasks.filter(t => {
-                 if (t.id.startsWith('p-')) return matchingProjectIds.has(t.id);
-                 if (t.id.startsWith('m-')) return matchingProjectIds.has(t.project || '');
-                 if (t.id.startsWith('t-')) {
-                     if ((t.project || '').startsWith('p-')) return matchingProjectIds.has(t.project || '');
-                     if ((t.project || '').startsWith('m-')) {
-                         const parentMilestone = tasks.find(m => m.id === t.project);
-                         return parentMilestone && matchingProjectIds.has(parentMilestone.project || '');
+      <div className="card p-0" style={{ overflow: 'hidden' }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${activeTab}-${viewMode}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          >
+            {loading ? (
+               <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Loading Professional Gantt Chart...</div>
+            ) : tasks.length > 0 ? (() => {
+              
+              let filteredTasks = tasks;
+              if (searchQuery.trim() !== '') {
+                 const lowerQuery = searchQuery.toLowerCase();
+                 const matchingProjectIds = new Set(tasks.filter(t => t.id.startsWith('p-') && t.name.toLowerCase().includes(lowerQuery)).map(t => t.id));
+                 filteredTasks = tasks.filter(t => {
+                     if (t.id.startsWith('p-')) return matchingProjectIds.has(t.id);
+                     if (t.id.startsWith('m-')) return matchingProjectIds.has(t.project || '');
+                     if (t.id.startsWith('t-')) {
+                         if ((t.project || '').startsWith('p-')) return matchingProjectIds.has(t.project || '');
+                         if ((t.project || '').startsWith('m-')) {
+                             const parentMilestone = tasks.find(m => m.id === t.project);
+                             return parentMilestone && matchingProjectIds.has(parentMilestone.project || '');
+                         }
                      }
-                 }
-                 return false;
-             });
-          }
+                     return false;
+                 });
+              }
 
-          if (filteredTasks.length === 0) {
-             return <div className="p-8 text-center text-muted-foreground">No projects match your search.</div>;
-          }
+              if (filteredTasks.length === 0) {
+                 return <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>No projects match your search.</div>;
+              }
 
-          return (
-          <div style={{ overflowX: 'auto' }}>
-            <Gantt 
-              tasks={filteredTasks} 
-              viewMode={viewMode}
-              onExpanderClick={handleExpanderClick}
-              onDateChange={handleDateChange}
-              listCellWidth="390px"
-              columnWidth={viewMode === ViewMode.Month ? 150 : viewMode === ViewMode.Week ? 100 : 60}
-              TaskListHeader={CustomTaskListHeader}
-              TaskListTable={CustomTaskListTable}
-              TooltipContent={CustomTooltip}
-            />
-          </div>
-          );
-        })() : (
-           <div className="p-8 text-center text-muted-foreground">No data available to display in Gantt Chart. Add a project to get started.</div>
-        )}
+              return (
+              <div style={{ overflowX: 'auto' }}>
+                <Gantt 
+                  tasks={filteredTasks} 
+                  viewMode={viewMode}
+                  onExpanderClick={handleExpanderClick}
+                  onDateChange={handleDateChange}
+                  listCellWidth="390px"
+                  columnWidth={viewMode === ViewMode.Month ? 150 : viewMode === ViewMode.Week ? 100 : 60}
+                  TaskListHeader={CustomTaskListHeader}
+                  TaskListTable={CustomTaskListTable}
+                  TooltipContent={CustomTooltip}
+                />
+              </div>
+              );
+            })() : (
+               <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>No data available to display in Gantt Chart. Add a project to get started.</div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
       
-      <div className="flex flex-col gap-2 mt-2 text-sm text-muted">
-        <div className="flex gap-4">
-          <div className="font-medium mr-2">Legend:</div>
-          <div className="flex items-center gap-2"><span style={{ width: '12px', height: '12px', backgroundColor: '#94a3b8', borderRadius: '2px' }}></span> Not Started</div>
-          <div className="flex items-center gap-2"><span style={{ width: '12px', height: '12px', backgroundColor: '#eab308', borderRadius: '2px' }}></span> In Progress</div>
-          <div className="flex items-center gap-2"><span style={{ width: '12px', height: '12px', backgroundColor: '#22c55e', borderRadius: '2px' }}></span> Completed</div>
-          <div className="flex items-center gap-2"><span style={{ width: '12px', height: '12px', backgroundColor: '#854d0e', borderRadius: '2px' }}></span> Hold</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+          <div style={{ fontWeight: 600, marginRight: 'var(--space-2)' }}>Legend:</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><span style={{ width: '12px', height: '12px', backgroundColor: 'var(--color-secondary)', borderRadius: '2px' }}></span> Not Started</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><span style={{ width: '12px', height: '12px', backgroundColor: 'var(--color-primary)', borderRadius: '2px' }}></span> In Progress</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><span style={{ width: '12px', height: '12px', backgroundColor: 'var(--color-success)', borderRadius: '2px' }}></span> Completed</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}><span style={{ width: '12px', height: '12px', backgroundColor: 'var(--color-danger)', borderRadius: '2px' }}></span> Hold</div>
         </div>
       </div>
     </div>

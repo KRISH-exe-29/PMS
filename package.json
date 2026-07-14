@@ -7,14 +7,21 @@
     "install:all": "npm install && npm run install:client && npm run install:server",
     "install:client": "cd client && npm install",
     "install:server": "cd server && npm install",
+    "predev": "node -e \"try{require.resolve('concurrently')}catch(e){console.log('[setup] Installing root dependencies...');require('child_process').execSync('npm install',{stdio:'inherit'})}\"",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
+    "prestart": "node -e \"try{require.resolve('concurrently')}catch(e){console.log('[setup] Installing root dependencies...');require('child_process').execSync('npm install',{stdio:'inherit'})}\"",
     "start": "concurrently \"npm run start:client\" \"npm run start:server\"",
     "start:client": "cd client && npm run build && npm run preview",
     "start:server": "cd server && npm run start"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "agentation-mcp": "^1.2.0",
+    "eventsource": "^4.1.0"
   }
 }

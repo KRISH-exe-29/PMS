@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Send, Search, CheckCircle, XCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import PageHeader from '../components/ui/PageHeader';
+import DataTable from '../components/ui/DataTable';
+import type { Column } from '../components/ui/DataTable';
+import StatusBadge from '../components/ui/StatusBadge';
+import EmptyState from '../components/ui/EmptyState';
 
 interface Notification {
   id: string;
@@ -49,124 +53,137 @@ export default function EmailNotification() {
     alert('Email sent successfully!');
   };
 
+  const columns: Column<Notification>[] = [
+    {
+      key: 'recipient',
+      header: 'Recipient',
+      render: (n) => <span className="font-medium text-[var(--color-text-primary)]">{n.recipient}</span>
+    },
+    {
+      key: 'subject',
+      header: 'Subject',
+      render: (n) => <span className="font-medium text-[var(--color-text-secondary)]">{n.subject}</span>
+    },
+    {
+      key: 'sentDate',
+      header: 'Sent Date',
+      render: (n) => <span className="text-[var(--color-text-tertiary)]">{n.sentDate}</span>
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (n) => n.status === 'Sent' ? (
+        <StatusBadge variant="success">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <CheckCircle size={14} /> Sent
+          </div>
+        </StatusBadge>
+      ) : (
+        <StatusBadge variant="danger">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <XCircle size={14} /> Failed
+          </div>
+        </StatusBadge>
+      )
+    }
+  ];
+
   return (
-    <div className="flex gap-6 flex-col lg:flex-row">
-      <div className="card glass-elevated" style={{ flex: '1', height: 'fit-content' }}>
-        <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-primary">
-          <Send size={20} />
-          Send Email
-        </h2>
-        
-        <form onSubmit={handleSend}>
-          <div className="form-group">
-            <label className="form-label">To (Recipient)</label>
-            <input 
-              required 
-              type="email" 
-              className="form-input" 
-              value={to}
-              onChange={e => setTo(e.target.value)}
-              placeholder="e.g. user@example.com"
-            />
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <PageHeader title="Email Notifications" />
 
-          <div className="form-group">
-            <label className="form-label">Subject</label>
-            <input 
-              required 
-              type="text" 
-              className="form-input" 
-              value={subject}
-              onChange={e => setSubject(e.target.value)}
-              placeholder="Email subject"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Message</label>
-            <textarea 
-              required 
-              className="form-input" 
-              rows={8}
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder="Type your message here..."
-            />
+      <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
+        {/* Send Email Form */}
+        <div className="card p-0" style={{ flex: '1', minWidth: '300px', height: 'fit-content' }}>
+          <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <Send size={20} style={{ color: 'var(--color-primary)' }} />
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>Send Email</h2>
           </div>
           
-          <div className="flex justify-end gap-2 mt-4">
-            <button 
-              type="button" 
-              className="btn btn-outline" 
-              onClick={() => { setTo(''); setSubject(''); setMessage(''); }}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary flex items-center gap-2">
-              <Send size={16} />
-              Send
-            </button>
-          </div>
-        </form>
-      </div>
+          <form onSubmit={handleSend} style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div className="form-group">
+              <label className="form-label">To (Recipient)</label>
+              <input 
+                required 
+                type="email" 
+                className="form-input" 
+                value={to}
+                onChange={e => setTo(e.target.value)}
+                placeholder="e.g. user@example.com"
+              />
+            </div>
 
-      <div className="card glass-elevated" style={{ flex: '2' }}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">Notification History</h2>
-          <div style={{ position: 'relative', width: '250px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Search history..."
-              style={{ paddingLeft: '2.5rem' }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+            <div className="form-group">
+              <label className="form-label">Subject</label>
+              <input 
+                required 
+                type="text" 
+                className="form-input" 
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                placeholder="Email subject"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Message</label>
+              <textarea 
+                required 
+                className="form-input" 
+                rows={8}
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="Type your message here..."
+              />
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                onClick={() => { setTo(''); setSubject(''); setMessage(''); }}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <Send size={16} />
+                Send
+              </button>
+            </div>
+          </form>
         </div>
 
-        <div className="table-container" style={{ border: 'none' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Recipient</th>
-                <th>Subject</th>
-                <th>Sent Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <motion.tbody
-              initial="hidden" animate="visible"
-              variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
-            >
-              {filteredHistory.map(item => (
-                <motion.tr variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} key={item.id}>
-                  <td>{item.recipient}</td>
-                  <td className="font-medium">{item.subject}</td>
-                  <td>{item.sentDate}</td>
-                  <td>
-                    {item.status === 'Sent' ? (
-                      <span className="badge badge-success flex items-center gap-1 w-fit">
-                        <CheckCircle size={14} /> Sent
-                      </span>
-                    ) : (
-                      <span className="badge badge-destructive flex items-center gap-1 w-fit">
-                        <XCircle size={14} /> Failed
-                      </span>
-                    )}
-                  </td>
-                </motion.tr>
-              ))}
-              {filteredHistory.length === 0 && (
-                <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                    No notification history found.
-                  </td>
-                </tr>
-              )}
-            </motion.tbody>
-          </table>
+        {/* History Table */}
+        <div className="card p-0" style={{ flex: '2', minWidth: '400px' }}>
+          <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>Notification History</h2>
+            <div style={{ position: 'relative', width: '250px' }}>
+              <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' }} />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Search history..."
+                style={{ paddingLeft: '2.5rem', width: '100%' }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ overflow: 'hidden' }}>
+            <DataTable
+              columns={columns}
+              data={filteredHistory}
+              keyExtractor={(item) => item.id}
+              emptyState={
+                <EmptyState
+                  icon={<Send size={48} />}
+                  title="No history found"
+                  description="Sent emails will appear here."
+                />
+              }
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Eye, Edit, Trash2, X, File } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2, File, ClipboardList } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/ui/PageHeader';
+import DataTable from '../components/ui/DataTable';
+import type { Column } from '../components/ui/DataTable';
+import StatusBadge from '../components/ui/StatusBadge';
+import FormModal from '../components/ui/FormModal';
+import EmptyState from '../components/ui/EmptyState';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Tab = 'individual' | 'team';
@@ -128,23 +134,130 @@ export default function TaskManagement() {
     }
   };
 
-  const getStatusBadge = (status: TaskStatus, id: string) => {
+  const getStatusBadge = (status: TaskStatus, id?: string) => {
+    if (!id) {
+       return <StatusBadge variant={status === 'Completed' ? 'success' : status === 'In Progress' ? 'primary' : status === 'Blocked' ? 'danger' : 'secondary'}>{status}</StatusBadge>;
+    }
     return (
       <select 
         value={status || 'Not Started'}
         onChange={(e) => handleStatusChange(id, e.target.value as TaskStatus)}
         className={`badge ${status === 'Completed' ? 'badge-success' : status === 'In Progress' ? 'badge-primary' : status === 'Blocked' ? 'badge-destructive' : 'badge-secondary'}`}
-        style={{ border: 'none', outline: 'none', cursor: 'pointer', fontWeight: 600 }}
+        style={{ border: 'none', outline: 'none', cursor: 'pointer' }}
       >
-        <option value="Not Started" style={{ color: 'initial', background: 'white' }}>Not Started</option>
-        <option value="Started" style={{ color: 'initial', background: 'white' }}>Started</option>
-        <option value="In Progress" style={{ color: 'initial', background: 'white' }}>In Progress</option>
-        <option value="On Hold" style={{ color: 'initial', background: 'white' }}>On Hold</option>
-        <option value="Completed" style={{ color: 'initial', background: 'white' }}>Completed</option>
-        <option value="Blocked" style={{ color: 'initial', background: 'white' }}>Blocked</option>
+        <option value="Not Started" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>Not Started</option>
+        <option value="Started" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>Started</option>
+        <option value="In Progress" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>In Progress</option>
+        <option value="On Hold" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>On Hold</option>
+        <option value="Completed" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>Completed</option>
+        <option value="Blocked" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>Blocked</option>
       </select>
     );
   };
+
+  const columns: Column<Task>[] = [
+    {
+      key: 'projectCode',
+      header: 'Project Code',
+      render: (t) => <span className="font-medium text-[var(--color-text-primary)]">{t.projectCode}</span>,
+    },
+    {
+      key: 'projectName',
+      header: 'Project Name',
+      render: (t) => t.projectName,
+    },
+    {
+      key: 'milestoneName',
+      header: 'Milestone',
+      render: (t) => t.milestoneName,
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      render: (t) => <span className="badge badge-secondary" style={{ backgroundColor: 'var(--color-bg-subtle)' }}>{t.type === 'Individual' ? 'Internal Team' : 'External Team'}</span>,
+    },
+    {
+      key: 'assignedTo',
+      header: 'Assigned To',
+      render: (t) => t.assignedTo,
+    },
+    {
+      key: 'title',
+      header: 'Task Title',
+      render: (t) => <span className="font-medium text-[var(--color-text-primary)]">{t.title}</span>,
+    },
+    {
+      key: 'startDate',
+      header: 'Start Date',
+      render: (t) => t.startDate,
+    },
+    {
+      key: 'endDate',
+      header: 'End Date',
+      render: (t) => t.endDate,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (t) => getStatusBadge(t.status, t.id)
+    },
+    {
+      key: 'document',
+      header: 'Document',
+      render: (t) => {
+        if (!t.documentUrl) return <span style={{ color: 'var(--color-text-tertiary)' }}>-</span>;
+        return (
+          <div 
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--color-primary)', cursor: 'pointer', maxWidth: '150px' }} 
+            title={t.documentUrl} 
+            onClick={() => {
+              let urlToOpen = t.documentUrl;
+              if (urlToOpen && !urlToOpen.startsWith('http')) {
+                const { data } = supabase.storage.from('PRM document files').getPublicUrl(`public/${urlToOpen}`);
+                urlToOpen = data.publicUrl;
+              }
+              if (urlToOpen) window.open(urlToOpen, '_blank');
+            }}
+          >
+            <File size={16} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t.documentUrl.startsWith('http') ? decodeURIComponent(t.documentUrl.split('/').pop()?.split('_').slice(1).join('_') || t.documentUrl) : t.documentUrl}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (t) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <button 
+            className="action-btn action-btn-primary" 
+            title="View"
+            onClick={() => { setCurrentTask(t); setIsViewModalOpen(true); }}
+          >
+            <Eye size={16} />
+          </button>
+          <button 
+            className="action-btn action-btn-warning" 
+            title="Edit"
+            onClick={() => { setCurrentTask(t); setIsModalOpen(true); }}
+          >
+            <Edit size={16} />
+          </button>
+          <button 
+            className="action-btn action-btn-danger" 
+            title="Delete"
+            onClick={() => handleDelete(t)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
+  ];
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,32 +396,55 @@ export default function TaskManagement() {
   };
 
   return (
-    <div>
-      <div className="flex gap-6 mb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-        <button
-          className={`pb-2 transition-colors ${activeTab === 'individual' ? 'font-bold text-primary' : 'text-muted hover:text-foreground'}`}
-          style={{ borderBottom: activeTab === 'individual' ? '2px solid var(--primary)' : '2px solid transparent', marginBottom: '-1px' }}
-          onClick={() => setActiveTab('individual')}
-        >
-          Internal Team
-        </button>
-        <button
-          className={`pb-2 transition-colors ${activeTab === 'team' ? 'font-bold text-primary' : 'text-muted hover:text-foreground'}`}
-          style={{ borderBottom: activeTab === 'team' ? '2px solid var(--primary)' : '2px solid transparent', marginBottom: '-1px' }}
-          onClick={() => setActiveTab('team')}
-        >
-          External Team
-        </button>
-      </div>
-
-      <div className="page-header">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <PageHeader title="Task Management">
+        <div style={{ display: 'flex', padding: '0.25rem', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-lg)' }}>
+          {([
+            { id: 'individual', label: 'Internal Team' },
+            { id: 'team', label: 'External Team' }
+          ] as const).map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                style={{
+                  position: 'relative',
+                  padding: '0.375rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: isActive ? 600 : 500,
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: 'transparent',
+                  color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                  zIndex: 1
+                }}
+                onClick={() => setActiveTab(tab.id as Tab)}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="tasks-active-tab"
+                    style={{
+                      position: 'absolute', inset: 0,
+                      backgroundColor: 'var(--color-surface)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-sm)',
+                      zIndex: -1
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1 }}>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
         <div style={{ position: 'relative', width: '300px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
+          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' }} />
           <input
             type="text"
             className="form-input"
             placeholder="Search tasks..."
-            style={{ paddingLeft: '2.5rem' }}
+            style={{ paddingLeft: '2.5rem', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -323,396 +459,289 @@ export default function TaskManagement() {
           <Plus size={18} style={{ marginRight: '0.5rem' }} />
           Add Task
         </button>
-      </div>
+      </PageHeader>
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Project Code</th>
-              <th>Project Name</th>
-              <th>Milestone</th>
-              <th>Type</th>
-              <th>Assigned To</th>
-              <th>Task Title</th>
-              <th>Start Date</th>
-              <th>End Date</th>
-              <th>Status</th>
-              <th>Document</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <motion.tbody
-            initial="hidden" animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+      <div className="card p-0" style={{ overflow: 'hidden' }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
           >
-            {filteredTasks.map(task => (
-              <motion.tr variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} key={task.id}>
-                <td className="font-medium">{task.projectCode}</td>
-                <td>{task.projectName}</td>
-                <td>{task.milestoneName}</td>
-                <td><span className="badge badge-secondary">{task.type === 'Individual' ? 'Internal Team' : 'External Team'}</span></td>
-                <td>{task.assignedTo}</td>
-                <td className="font-medium">{task.title}</td>
-                <td>{task.startDate}</td>
-                <td>{task.endDate}</td>
-                <td>{getStatusBadge(task.status, task.id)}</td>
-                <td>
-                  {task.documentUrl ? (
-                    <div 
-                      className="flex items-center gap-2 text-primary" 
-                      style={{ cursor: 'pointer', maxWidth: '150px' }} 
-                      title={task.documentUrl} 
-                      onClick={() => {
-                        let urlToOpen = task.documentUrl;
-                        if (urlToOpen && !urlToOpen.startsWith('http')) {
-                          const { data } = supabase.storage.from('PRM document files').getPublicUrl(`public/${urlToOpen}`);
-                          urlToOpen = data.publicUrl;
-                        }
-                        if (urlToOpen) window.open(urlToOpen, '_blank');
-                      }}
-                    >
-                      <File size={16} style={{ flexShrink: 0 }} />
-                      <span className="truncate" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {task.documentUrl.startsWith('http') ? decodeURIComponent(task.documentUrl.split('/').pop()?.split('_').slice(1).join('_') || task.documentUrl) : task.documentUrl}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-muted">-</span>
-                  )}
-                </td>
-                <td>
-                  <div className="flex gap-2">
-                    <button 
-                      className="action-btn" 
-                      title="View"
-                      onClick={() => { setCurrentTask(task); setIsViewModalOpen(true); }}
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button 
-                      className="action-btn" 
-                      title="Edit"
-                      onClick={() => { setCurrentTask(task); setIsModalOpen(true); }}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      className="action-btn action-btn-danger" 
-                      title="Delete"
-                      onClick={() => handleDelete(task)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </motion.tr>
-            ))}
-            {loading && (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Loading tasks...</td>
-              </tr>
-            )}
-            {!loading && filteredTasks.length === 0 && (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                  No {activeTab} tasks found.
-                </td>
-              </tr>
-            )}
-          </motion.tbody>
-        </table>
-      </div>
-
-      <AnimatePresence>
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="modal-content glass-elevated"
-          >
-            <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
-              <h2 className="text-lg font-bold">{currentTask.id ? 'Edit Task' : `Add ${activeTab === 'individual' ? 'Internal Team' : 'Team'} Task`}</h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSave} className="flex flex-col gap-4">
-              <div className="form-group">
-                <label className="form-label">Project Name</label>
-                <select 
-                  required
-                  className="form-input"
-                  value={currentTask.projectId || ''}
-                  onChange={e => {
-                    const proj = projects.find(p => p.id === e.target.value);
-                    setCurrentTask({...currentTask, projectId: e.target.value, projectName: proj?.name, milestoneId: ''});
-                  }}
-                >
-                  <option value="">Select Project</option>
-                  {projects.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {currentTask.projectId && (
-                <div className="form-group">
-                  <label className="form-label">Milestone</label>
-                  <select
-                    required
-                    className="form-input"
-                    value={currentTask.milestoneId || ''}
-                    onChange={e => {
-                      const ms = milestones.find(m => m.id === e.target.value);
-                      setCurrentTask({
-                        ...currentTask, 
-                        milestoneId: e.target.value,
-                        startDate: (ms as any)?.start_date || (ms as any)?.startDate || currentTask.startDate,
-                        endDate: (ms as any)?.end_date || (ms as any)?.endDate || currentTask.endDate
-                      });
-                    }}
-                  >
-                    <option value="">Select Milestone</option>
-                    {milestones.filter(m => m.project_id === currentTask.projectId).map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {activeTab === 'individual' ? (
-                <>
-                  <div className="form-group">
-                    <label className="form-label">Employee Name</label>
-                    <input 
-                      required 
-                      type="text" 
-                      className="form-input" 
-                      value={currentTask.assignedTo || ''} 
-                      onChange={e => setCurrentTask({...currentTask, assignedTo: e.target.value})} 
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="form-group">
-                    <label className="form-label">Team Name</label>
-                    <input 
-                      required 
-                      type="text" 
-                      className="form-input" 
-                      value={currentTask.assignedTo || ''} 
-                      onChange={e => setCurrentTask({...currentTask, assignedTo: e.target.value})} 
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">Task Title</label>
-                <input 
-                  required 
-                  type="text" 
-                  className="form-input" 
-                  value={currentTask.title || ''} 
-                  onChange={e => setCurrentTask({...currentTask, title: e.target.value})} 
+            <DataTable
+              columns={columns}
+              data={filteredTasks}
+              keyExtractor={(t) => t.id}
+              loading={loading}
+              emptyState={
+                <EmptyState
+                  icon={<ClipboardList size={48} />}
+                  title={`No ${activeTab === 'individual' ? 'Internal' : 'External'} Team tasks`}
+                  description="Adjust your search or create a new task to get started."
                 />
-              </div>
-
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Start Date</label>
-                  <input 
-                    required 
-                    type="date" 
-                    className="form-input" 
-                    value={currentTask.startDate || ''} 
-                    onChange={e => setCurrentTask({...currentTask, startDate: e.target.value})} 
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">End Date</label>
-                  <input 
-                    required 
-                    type="date" 
-                    className="form-input" 
-                    value={currentTask.endDate || ''} 
-                    onChange={e => setCurrentTask({...currentTask, endDate: e.target.value})} 
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Actual Start Date</label>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={currentTask.actualStartDate || ''} 
-                    onChange={e => setCurrentTask({...currentTask, actualStartDate: e.target.value})} 
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">Actual End Date</label>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={currentTask.actualEndDate || ''} 
-                    onChange={e => setCurrentTask({...currentTask, actualEndDate: e.target.value})} 
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-4 items-start">
-                <div className="form-group flex-1">
-                  <label className="form-label">Upload Document</label>
-                  <input 
-                    type="file" 
-                    className="form-input" 
-                    style={{ padding: '0.375rem 0.5rem', height: 'auto' }}
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setCurrentTask({...currentTask, documentUrl: file.name, documentSize: file.size, documentFile: file}); 
-                      }
-                    }} 
-                  />
-                  {currentTask.documentUrl && <div className="text-sm text-muted mt-1" style={{ wordBreak: 'break-all' }}>Current file: {currentTask.documentUrl}</div>}
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">Remarks</label>
-                  <textarea 
-                    className="form-input" 
-                    rows={2}
-                    placeholder="Enter remarks..."
-                    value={currentTask.remarks || ''} 
-                    onChange={e => setCurrentTask({...currentTask, remarks: e.target.value})} 
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Progress (%)</label>
-                  <input 
-                    required 
-                    type="number" 
-                    min="0"
-                    max="100"
-                    className="form-input" 
-                    value={currentTask.progress || 0} 
-                    onChange={e => setCurrentTask({...currentTask, progress: parseInt(e.target.value) || 0})} 
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">Status</label>
-                  <select 
-                    className="form-input"
-                    value={currentTask.status}
-                    onChange={e => setCurrentTask({...currentTask, status: e.target.value as TaskStatus})}
-                  >
-                    <option value="Started">Started</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Blocked">Blocked</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-              
-              
-              <div className="flex justify-end gap-2" style={{ marginTop: '1rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Task
-                </button>
-              </div>
-            </form>
+              }
+            />
           </motion.div>
-        </div>
-      )}
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
 
-      <AnimatePresence>
-      {isViewModalOpen && (
-        <div className="modal-overlay">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="modal-content glass-elevated" style={{ position: 'relative' }}
-          >
-            <div className="view-modal-header">
-              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="150" height="40" rx="4" fill="#e3282f" />
-                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
-              </svg>
-              <h2 className="view-modal-header-title">Task Details</h2>
-              <button onClick={() => setIsViewModalOpen(false)} style={{ position: 'absolute', right: '1.5rem', top: '1.5rem', color: 'var(--muted-foreground)' }}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="view-modal-grid">
-              <div className="col-span-2">
-                <p className="view-modal-label">Task Title</p>
-                <div className="view-modal-value">
-                  {currentTask.title}
-                </div>
-              </div>
-              <div>
-                <p className="view-modal-label">Project</p>
-                <div className="view-modal-value text-primary">
-                  {currentTask.projectName}
-                </div>
-              </div>
-              <div>
-                <p className="view-modal-label">Type</p>
-                <div className="view-modal-value">
-                  {currentTask.type}
-                </div>
-              </div>
-              <div>
-                <p className="view-modal-label">Assigned To</p>
-                <div className="view-modal-value flex items-center gap-2">
-                  <span className="font-semibold">{currentTask.assignedTo}</span>
-                  {currentTask.role && <span className="text-muted text-xs px-2 py-0.5" style={{ backgroundColor: 'var(--secondary)', borderRadius: '9999px' }}>{currentTask.role}</span>}
-                </div>
-              </div>
-              <div>
-                <p className="view-modal-label">Progress & Status</p>
-                <div className="flex items-center gap-3 view-modal-value">
-                  <span className="font-bold">{currentTask.progress || 0}%</span>
-                  <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--border)' }}></div>
-                  <div>{getStatusBadge(currentTask.status as TaskStatus, currentTask.id || '')}</div>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <p className="view-modal-label">Timeline</p>
-                <div className="view-modal-value flex items-center gap-2">
-                  <span>{currentTask.startDate}</span>
-                  <span className="text-muted">→</span>
-                  <span>{currentTask.endDate}</span>
-                </div>
-              </div>
-            </div>
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={currentTask.id ? 'Edit Task' : `Add ${activeTab === 'individual' ? 'Internal Team' : 'External Team'} Task`}
+        maxWidth="700px"
+        footer={
+          <>
+            <button type="button" className="btn" style={{ background: 'transparent', color: 'var(--color-text-secondary)' }} onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" form="task-form" className="btn btn-primary">
+              Save Task
+            </button>
+          </>
+        }
+      >
+        <form id="task-form" onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="form-group">
+            <label className="form-label">Project Name</label>
+            <select 
+              required
+              className="form-input"
+              value={currentTask.projectId || ''}
+              onChange={e => {
+                const proj = projects.find(p => p.id === e.target.value);
+                setCurrentTask({...currentTask, projectId: e.target.value, projectName: proj?.name, milestoneId: ''});
+              }}
+            >
+              <option value="">Select Project</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
 
-            <div className="flex justify-end mt-6">
-              <button type="button" className="btn btn-primary" onClick={() => setIsViewModalOpen(false)}>
-                Close Window
-              </button>
+          {currentTask.projectId && (
+            <div className="form-group">
+              <label className="form-label">Milestone</label>
+              <select
+                required
+                className="form-input"
+                value={currentTask.milestoneId || ''}
+                onChange={e => {
+                  const ms = milestones.find(m => m.id === e.target.value);
+                  setCurrentTask({
+                    ...currentTask, 
+                    milestoneId: e.target.value,
+                    startDate: (ms as any)?.start_date || (ms as any)?.startDate || currentTask.startDate,
+                    endDate: (ms as any)?.end_date || (ms as any)?.endDate || currentTask.endDate
+                  });
+                }}
+              >
+                <option value="">Select Milestone</option>
+                {milestones.filter(m => m.project_id === currentTask.projectId).map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
             </div>
-          </motion.div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">{activeTab === 'individual' ? 'Employee Name' : 'Team Name'}</label>
+            <input 
+              required 
+              type="text" 
+              className="form-input" 
+              value={currentTask.assignedTo || ''} 
+              onChange={e => setCurrentTask({...currentTask, assignedTo: e.target.value})} 
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Task Title</label>
+            <input 
+              required 
+              type="text" 
+              className="form-input" 
+              value={currentTask.title || ''} 
+              onChange={e => setCurrentTask({...currentTask, title: e.target.value})} 
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Start Date</label>
+              <input 
+                required 
+                type="date" 
+                className="form-input" 
+                value={currentTask.startDate || ''} 
+                onChange={e => setCurrentTask({...currentTask, startDate: e.target.value})} 
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">End Date</label>
+              <input 
+                required 
+                type="date" 
+                className="form-input" 
+                value={currentTask.endDate || ''} 
+                onChange={e => setCurrentTask({...currentTask, endDate: e.target.value})} 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Actual Start Date</label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={currentTask.actualStartDate || ''} 
+                onChange={e => setCurrentTask({...currentTask, actualStartDate: e.target.value})} 
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Actual End Date</label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={currentTask.actualEndDate || ''} 
+                onChange={e => setCurrentTask({...currentTask, actualEndDate: e.target.value})} 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Upload Document</label>
+              <input 
+                type="file" 
+                className="form-input" 
+                style={{ padding: '0.375rem 0.5rem', height: 'auto' }}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setCurrentTask({...currentTask, documentUrl: file.name, documentSize: file.size, documentFile: file}); 
+                  }
+                }} 
+              />
+              {currentTask.documentUrl && <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)', wordBreak: 'break-all' }}>Current file: {currentTask.documentUrl}</div>}
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Remarks</label>
+              <textarea 
+                className="form-input" 
+                rows={2}
+                placeholder="Enter remarks..."
+                value={currentTask.remarks || ''} 
+                onChange={e => setCurrentTask({...currentTask, remarks: e.target.value})} 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Progress (%)</label>
+              <input 
+                required 
+                type="number" 
+                min="0"
+                max="100"
+                className="form-input" 
+                value={currentTask.progress || 0} 
+                onChange={e => setCurrentTask({...currentTask, progress: parseInt(e.target.value) || 0})} 
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Status</label>
+              <select 
+                className="form-input"
+                value={currentTask.status}
+                onChange={e => setCurrentTask({...currentTask, status: e.target.value as TaskStatus})}
+              >
+                <option value="Started">Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </FormModal>
+
+      <FormModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Task Details"
+        maxWidth="600px"
+        footer={
+          <button type="button" className="btn" style={{ background: 'var(--color-bg-subtle)', color: 'var(--color-text-primary)' }} onClick={() => setIsViewModalOpen(false)}>
+            Close Window
+          </button>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Task Title</p>
+              <div style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                {currentTask.title}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Project</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+                {currentTask.projectName}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Type</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                {currentTask.type === 'Individual' ? 'Internal Team' : 'External Team'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Assigned To</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>{currentTask.assignedTo}</span>
+                {currentTask.role && <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--color-bg-subtle)', padding: '0.125rem 0.5rem', borderRadius: '9999px', color: 'var(--color-text-secondary)' }}>{currentTask.role}</span>}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Progress & Status</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{currentTask.progress || 0}%</span>
+                <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--color-border)' }}></div>
+                <StatusBadge variant={currentTask.status === 'Completed' ? 'success' : currentTask.status === 'In Progress' ? 'primary' : currentTask.status === 'Blocked' ? 'danger' : 'secondary'}>
+                  {currentTask.status}
+                </StatusBadge>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Timeline</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>{currentTask.startDate}</span>
+                <span style={{ color: 'var(--color-text-tertiary)' }}>→</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>{currentTask.endDate}</span>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-      </AnimatePresence>
+      </FormModal>
     </div>
   );
 }

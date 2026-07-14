@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Eye, Edit, Trash2, X } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '../components/ui/PageHeader';
+import DataTable from '../components/ui/DataTable';
+import type { Column } from '../components/ui/DataTable';
+import StatusBadge from '../components/ui/StatusBadge';
+import FormModal from '../components/ui/FormModal';
+import EmptyState from '../components/ui/EmptyState';
 
 type MilestoneStatus = 'Not Started' | 'In Progress' | 'Completed';
 
@@ -105,20 +110,119 @@ export default function MilestoneManagement() {
     }
   };
 
-  const getStatusBadge = (status: MilestoneStatus, id: string) => {
+  const getStatusBadge = (status: MilestoneStatus, id?: string) => {
+    if (!id) {
+       return <StatusBadge variant={status === 'Completed' ? 'success' : status === 'In Progress' ? 'primary' : 'secondary'}>{status}</StatusBadge>;
+    }
     return (
       <select 
         value={status || 'Not Started'}
         onChange={(e) => handleStatusChange(id, e.target.value as MilestoneStatus)}
         className={`badge ${status === 'Completed' ? 'badge-success' : status === 'In Progress' ? 'badge-primary' : 'badge-secondary'}`}
-        style={{ border: 'none', outline: 'none', cursor: 'pointer', fontWeight: 600 }}
+        style={{ border: 'none', outline: 'none', cursor: 'pointer' }}
       >
-        <option value="Not Started" style={{ color: 'initial', background: 'white' }}>Not Started</option>
-        <option value="In Progress" style={{ color: 'initial', background: 'white' }}>In Progress</option>
-        <option value="Completed" style={{ color: 'initial', background: 'white' }}>Completed</option>
+        <option value="Not Started" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>Not Started</option>
+        <option value="In Progress" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>In Progress</option>
+        <option value="Completed" style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface)' }}>Completed</option>
       </select>
     );
   };
+
+  const columns: Column<Milestone>[] = [
+    {
+      key: 'checkbox',
+      header: (
+        <input 
+          type="checkbox" 
+          checked={selectedMilestones.length > 0 && selectedMilestones.length === filteredMilestones.length}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedMilestones(filteredMilestones.map(m => m.id));
+            } else {
+              setSelectedMilestones([]);
+            }
+          }}
+          style={{ cursor: 'pointer' }}
+        />
+      ),
+      width: '40px',
+      align: 'center',
+      render: (m) => (
+        <input 
+          type="checkbox"
+          checked={selectedMilestones.includes(m.id)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedMilestones([...selectedMilestones, m.id]);
+            } else {
+              setSelectedMilestones(selectedMilestones.filter(id => id !== m.id));
+            }
+          }}
+          style={{ cursor: 'pointer' }}
+        />
+      )
+    },
+    {
+      key: 'projectName',
+      header: 'Project Name',
+      render: (m) => m.projectName,
+    },
+    {
+      key: 'projectCode',
+      header: 'Project Code',
+      render: (m) => m.projectCode,
+    },
+    {
+      key: 'name',
+      header: 'Milestone Name',
+      render: (m) => <span className="font-medium text-[var(--color-text-primary)]">{m.name}</span>,
+    },
+    {
+      key: 'startDate',
+      header: 'Start Date',
+      render: (m) => m.startDate,
+    },
+    {
+      key: 'endDate',
+      header: 'Target Date',
+      render: (m) => m.endDate,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (m) => getStatusBadge(m.status, m.id)
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (m) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <button 
+            className="action-btn action-btn-primary" 
+            title="View"
+            onClick={() => { setCurrentMilestone(m); setIsViewModalOpen(true); }}
+          >
+            <Eye size={16} />
+          </button>
+          <button 
+            className="action-btn action-btn-warning" 
+            title="Edit"
+            onClick={() => { setCurrentMilestone(m); setIsModalOpen(true); }}
+          >
+            <Edit size={16} />
+          </button>
+          <button 
+            className="action-btn action-btn-danger" 
+            title="Delete"
+            onClick={() => handleDelete(m.id)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
+  ];
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,336 +358,239 @@ export default function MilestoneManagement() {
   };
 
   return (
-    <div>
-      <div className="page-header">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <PageHeader title="Milestone Management">
         <div style={{ position: 'relative', width: '300px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
+          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' }} />
           <input
             type="text"
             className="form-input"
             placeholder="Search milestones..."
-            style={{ paddingLeft: '2.5rem' }}
+            style={{ paddingLeft: '2.5rem', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-4 items-center" style={{ marginLeft: 'auto' }}>
-          {selectedMilestones.length > 0 && (
-            <button 
-              className="btn btn-outline"
-              style={{ color: 'var(--destructive)', borderColor: 'var(--destructive)', padding: '0.5rem 1rem' }}
-              onClick={handleBulkDelete}
-            >
-              <Trash2 size={18} style={{ marginRight: '0.5rem' }} />
-              Delete Selected ({selectedMilestones.length})
-            </button>
-          )}
+        
+        {selectedMilestones.length > 0 && (
           <button 
-            className="btn btn-primary"
-            onClick={() => { setCurrentMilestone({ status: 'Not Started' }); setIsModalOpen(true); }}
+            className="btn btn-outline"
+            style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)', padding: '0.5rem 1rem' }}
+            onClick={handleBulkDelete}
           >
-            <Plus size={18} style={{ marginRight: '0.5rem' }} />
-            Add Milestone
+            <Trash2 size={18} style={{ marginRight: '0.5rem' }} />
+            Delete Selected ({selectedMilestones.length})
           </button>
-        </div>
+        )}
+        <button 
+          className="btn btn-primary"
+          onClick={() => { setCurrentMilestone({ status: 'Not Started' }); setIsModalOpen(true); }}
+        >
+          <Plus size={18} style={{ marginRight: '0.5rem' }} />
+          Add Milestone
+        </button>
+      </PageHeader>
+
+      <div className="card p-0" style={{ overflow: 'hidden' }}>
+        <DataTable
+          columns={columns}
+          data={filteredMilestones}
+          keyExtractor={(m) => m.id}
+          loading={loading}
+          emptyState={
+            <EmptyState
+              icon={<MapPin size={48} />}
+              title="No milestones found"
+              description="Adjust your search or create a new milestone to get started."
+            />
+          }
+        />
       </div>
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: '40px', textAlign: 'center' }}>
-                <input 
-                  type="checkbox" 
-                  checked={selectedMilestones.length > 0 && selectedMilestones.length === filteredMilestones.length}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedMilestones(filteredMilestones.map(m => m.id));
-                    } else {
-                      setSelectedMilestones([]);
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
-                />
-              </th>
-              <th>Project Name</th>
-              <th>Project Code</th>
-              <th>Milestone Name</th>
-              <th>Start Date</th>
-              <th>Target Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <motion.tbody
-            initial="hidden" animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
-          >
-            {filteredMilestones.map(milestone => (
-              <motion.tr variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }} key={milestone.id}>
-                <td style={{ textAlign: 'center' }}>
-                  <input 
-                    type="checkbox"
-                    checked={selectedMilestones.includes(milestone.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedMilestones([...selectedMilestones, milestone.id]);
-                      } else {
-                        setSelectedMilestones(selectedMilestones.filter(id => id !== milestone.id));
-                      }
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  />
-                </td>
-                <td>{milestone.projectName}</td>
-                <td>{milestone.projectCode}</td>
-                <td className="font-medium">{milestone.name}</td>
-                <td>{milestone.startDate}</td>
-                <td>{milestone.endDate}</td>
-                <td>{getStatusBadge(milestone.status, milestone.id)}</td>
-                <td>
-                  <div className="flex gap-2">
-                    <button 
-                      className="action-btn" 
-                      title="View"
-                      onClick={() => { setCurrentMilestone(milestone); setIsViewModalOpen(true); }}
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button 
-                      className="action-btn" 
-                      title="Edit"
-                      onClick={() => { setCurrentMilestone(milestone); setIsModalOpen(true); }}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      className="action-btn action-btn-danger" 
-                      title="Delete"
-                      onClick={() => handleDelete(milestone.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </motion.tr>
-            ))}
-            {loading && (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Loading milestones...</td>
-              </tr>
-            )}
-            {!loading && filteredMilestones.length === 0 && (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">
-                  No milestones found.
-                </td>
-              </tr>
-            )}
-          </motion.tbody>
-        </table>
-      </div>
-
-      <AnimatePresence>
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="modal-content glass-elevated"
-          >
-            <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
-              <h2 className="text-lg font-bold">{currentMilestone.id ? 'Edit Milestone' : 'Add Milestone'}</h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
-                <X size={20} />
-              </button>
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={currentMilestone.id ? 'Edit Milestone' : 'Add Milestone'}
+        maxWidth="700px"
+        footer={
+          <>
+            <button type="button" className="btn" style={{ background: 'transparent', color: 'var(--color-text-secondary)' }} onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" form="milestone-form" className="btn btn-primary">
+              Save Milestone
+            </button>
+          </>
+        }
+      >
+        <form id="milestone-form" onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="form-group">
+            <label className="form-label">Project</label>
+            <select 
+              required
+              className="form-input"
+              value={currentMilestone.projectId || ''}
+              onChange={e => {
+                const proj = projects.find(p => p.id === e.target.value);
+                setCurrentMilestone({
+                  ...currentMilestone, 
+                  projectId: e.target.value, 
+                  projectName: proj?.name,
+                  startDate: currentMilestone.startDate || (proj as any)?.start_date,
+                  endDate: currentMilestone.endDate || (proj as any)?.end_date
+                });
+              }}
+            >
+              <option value="">Select Project</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Milestone Name</label>
+            <input 
+              required 
+              type="text" 
+              className="form-input" 
+              value={currentMilestone.name || ''} 
+              onChange={e => setCurrentMilestone({...currentMilestone, name: e.target.value})} 
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Start Date</label>
+              <input 
+                required 
+                type="date" 
+                className="form-input" 
+                value={currentMilestone.startDate || ''} 
+                onChange={e => setCurrentMilestone({...currentMilestone, startDate: e.target.value})} 
+              />
             </div>
-            <form onSubmit={handleSave} className="flex flex-col gap-4">
-              <div className="form-group">
-                <label className="form-label">Project</label>
-                <select 
-                  required
-                  className="form-input"
-                  value={currentMilestone.projectId || ''}
-                  onChange={e => {
-                    const proj = projects.find(p => p.id === e.target.value);
-                    setCurrentMilestone({
-                      ...currentMilestone, 
-                      projectId: e.target.value, 
-                      projectName: proj?.name,
-                      startDate: currentMilestone.startDate || (proj as any)?.start_date,
-                      endDate: currentMilestone.endDate || (proj as any)?.end_date
-                    });
-                  }}
-                >
-                  <option value="">Select Project</option>
-                  {projects.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Milestone Name</label>
-                <input 
-                  required 
-                  type="text" 
-                  className="form-input" 
-                  value={currentMilestone.name || ''} 
-                  onChange={e => setCurrentMilestone({...currentMilestone, name: e.target.value})} 
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Start Date</label>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Target Date</label>
+              <input 
+                required 
+                type="date" 
+                className="form-input" 
+                value={currentMilestone.endDate || ''} 
+                onChange={e => setCurrentMilestone({...currentMilestone, endDate: e.target.value})} 
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Actual Start Date</label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={currentMilestone.actualStartDate || ''} 
+                onChange={e => setCurrentMilestone({...currentMilestone, actualStartDate: e.target.value})} 
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Actual End Date</label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={currentMilestone.actualEndDate || ''} 
+                onChange={e => setCurrentMilestone({...currentMilestone, actualEndDate: e.target.value})} 
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
+                <label className="form-label" style={{ margin: 0 }}>Progress (%)</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.75rem', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
                   <input 
-                    required 
-                    type="date" 
-                    className="form-input" 
-                    value={currentMilestone.startDate || ''} 
-                    onChange={e => setCurrentMilestone({...currentMilestone, startDate: e.target.value})} 
+                    type="checkbox" 
+                    checked={currentMilestone.isManualProgress || false}
+                    onChange={e => setCurrentMilestone({...currentMilestone, isManualProgress: e.target.checked})}
                   />
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">Target Date</label>
-                  <input 
-                    required 
-                    type="date" 
-                    className="form-input" 
-                    value={currentMilestone.endDate || ''} 
-                    onChange={e => setCurrentMilestone({...currentMilestone, endDate: e.target.value})} 
-                  />
-                </div>
+                  Override Auto-Calculation
+                </label>
               </div>
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <label className="form-label">Actual Start Date</label>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={currentMilestone.actualStartDate || ''} 
-                    onChange={e => setCurrentMilestone({...currentMilestone, actualStartDate: e.target.value})} 
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">Actual End Date</label>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={currentMilestone.actualEndDate || ''} 
-                    onChange={e => setCurrentMilestone({...currentMilestone, actualEndDate: e.target.value})} 
-                  />
-                </div>
+              <input 
+                type="number"
+                min="0"
+                max="100" 
+                className="form-input" 
+                value={currentMilestone.progress || 0} 
+                disabled={!currentMilestone.isManualProgress}
+                onChange={e => setCurrentMilestone({...currentMilestone, progress: parseInt(e.target.value) || 0})} 
+                style={{ backgroundColor: !currentMilestone.isManualProgress ? 'var(--color-bg-subtle)' : 'var(--color-surface)' }}
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Status</label>
+              <select 
+                className="form-input"
+                value={currentMilestone.status}
+                onChange={e => setCurrentMilestone({...currentMilestone, status: e.target.value as MilestoneStatus})}
+              >
+                <option value="Not Started">Not Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </FormModal>
+
+      <FormModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Milestone Details"
+        maxWidth="600px"
+        footer={
+          <button type="button" className="btn" style={{ background: 'var(--color-bg-subtle)', color: 'var(--color-text-primary)' }} onClick={() => setIsViewModalOpen(false)}>
+            Close Window
+          </button>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Milestone Name</p>
+              <div style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                {currentMilestone.name}
               </div>
-              <div className="flex gap-4">
-                <div className="form-group flex-1">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="form-label" style={{ marginBottom: 0 }}>Progress (%)</label>
-                    <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={currentMilestone.isManualProgress || false}
-                        onChange={e => setCurrentMilestone({...currentMilestone, isManualProgress: e.target.checked})}
-                      />
-                      Override Auto-Calculation
-                    </label>
-                  </div>
-                  <input 
-                    type="number"
-                    min="0"
-                    max="100" 
-                    className="form-input" 
-                    value={currentMilestone.progress || 0} 
-                    disabled={!currentMilestone.isManualProgress}
-                    onChange={e => setCurrentMilestone({...currentMilestone, progress: parseInt(e.target.value) || 0})} 
-                    style={{ backgroundColor: !currentMilestone.isManualProgress ? '#f1f5f9' : 'white' }}
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <label className="form-label">Status</label>
-                  <select 
-                    className="form-input"
-                    value={currentMilestone.status}
-                    onChange={e => setCurrentMilestone({...currentMilestone, status: e.target.value as MilestoneStatus})}
-                  >
-                    <option value="Not Started">Not Started</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Project Name</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+                {currentMilestone.projectName}
               </div>
-              <div className="flex justify-end gap-2" style={{ marginTop: '1rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save
-                </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Timeline</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>{currentMilestone.startDate}</span>
+                <span style={{ color: 'var(--color-text-tertiary)' }}>→</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>{currentMilestone.endDate}</span>
               </div>
-            </form>
-          </motion.div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Progress & Status</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', backgroundColor: 'var(--color-bg-subtle)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{currentMilestone.progress || 0}% {currentMilestone.isManualProgress && '(Manual)'}</span>
+                <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--color-border)' }}></div>
+                <StatusBadge variant={currentMilestone.status === 'Completed' ? 'success' : currentMilestone.status === 'In Progress' ? 'primary' : 'secondary'}>
+                  {currentMilestone.status}
+                </StatusBadge>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-      {isViewModalOpen && (
-        <div className="modal-overlay">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="modal-content glass-elevated"
-            style={{ position: 'relative' }}
-          >
-            <div className="view-modal-header">
-              <svg width="120" height="32" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="150" height="40" rx="4" fill="#e3282f" />
-                <text x="75" y="27" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="900" fill="white" textAnchor="middle" letterSpacing="1">INDO TECH</text>
-              </svg>
-              <h2 className="view-modal-header-title">Milestone Details</h2>
-              <button onClick={() => setIsViewModalOpen(false)} style={{ position: 'absolute', right: '1.5rem', top: '1.5rem', color: 'var(--muted-foreground)' }}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="view-modal-grid">
-              <div className="col-span-2">
-                <p className="view-modal-label">Milestone Name</p>
-                <div className="view-modal-value">{currentMilestone.name}</div>
-              </div>
-              <div className="col-span-2">
-                <p className="view-modal-label">Project Name</p>
-                <div className="view-modal-value text-primary">{currentMilestone.projectName}</div>
-              </div>
-              <div className="col-span-2">
-                <p className="view-modal-label">Timeline</p>
-                <div className="view-modal-value flex items-center gap-2">
-                  <span>{currentMilestone.startDate}</span>
-                  <span className="text-muted">→</span>
-                  <span>{currentMilestone.endDate}</span>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <p className="view-modal-label">Progress & Status</p>
-                <div className="view-modal-value flex items-center gap-3">
-                  <span>{currentMilestone.progress || 0}% {currentMilestone.isManualProgress && '(Manual)'}</span>
-                  <div style={{ height: '20px', width: '1px', backgroundColor: 'var(--border)' }}></div>
-                  <div>{getStatusBadge(currentMilestone.status as MilestoneStatus, currentMilestone.id || '')}</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-6">
-              <button type="button" className="btn btn-primary" onClick={() => setIsViewModalOpen(false)}>
-                Close Window
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-      </AnimatePresence>
+      </FormModal>
     </div>
   );
 }
