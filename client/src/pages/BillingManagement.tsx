@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Trash2, X, Receipt, Upload, Eye, Edit2 } from 'lucide-react';
+import { Search, Plus, Trash2, Receipt, Upload, Eye, Edit2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/ui/PageHeader';
+import DataTable from '../components/ui/DataTable';
+import type { Column } from '../components/ui/DataTable';
+import StatusBadge from '../components/ui/StatusBadge';
+import FormModal from '../components/ui/FormModal';
+import EmptyState from '../components/ui/EmptyState';
 
 interface Billing {
   id: string;
@@ -219,16 +225,111 @@ export default function BillingManagement() {
   // Filter milestones dynamically based on selected project
   const filteredMilestones = milestones.filter(m => m.project_id === selectedProjectId);
 
+  const getStatusBadge = (status: string) => {
+    switch(status) {
+      case 'Paid': return <StatusBadge variant="success">{status}</StatusBadge>;
+      default: return <StatusBadge variant="danger">{status}</StatusBadge>;
+    }
+  };
+
+  const columns: Column<Billing>[] = [
+    {
+      key: 'invoiceNo',
+      header: 'Invoice No',
+      render: (b) => <span className="font-medium text-[var(--color-text-primary)]">{b.invoiceNo}</span>,
+    },
+    {
+      key: 'vendorName',
+      header: 'Vendor Name',
+      render: (b) => b.vendorName,
+    },
+    {
+      key: 'projectName',
+      header: 'Project',
+      render: (b) => b.projectName,
+    },
+    {
+      key: 'milestoneName',
+      header: 'Milestone',
+      render: (b) => b.milestoneName,
+    },
+    {
+      key: 'invoiceAmount',
+      header: 'Amount',
+      render: (b) => (
+        <span className="font-medium text-[var(--color-primary)]">
+          {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(b.invoiceAmount)}
+        </span>
+      ),
+    },
+    {
+      key: 'actualDate',
+      header: 'Invoice Date',
+      render: (b) => new Date(b.actualDate).toLocaleDateString(),
+    },
+    {
+      key: 'paymentStatus',
+      header: 'Status',
+      render: (b) => getStatusBadge(b.paymentStatus)
+    },
+    {
+      key: 'attachmentUrl',
+      header: 'Attachment',
+      render: (b) => b.attachmentUrl ? (
+        <a 
+          href={b.attachmentUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-primary)', fontSize: '0.875rem', textDecoration: 'none', fontWeight: 500 }}
+          title="View Document"
+        >
+          <Receipt size={16} />
+          View
+        </a>
+      ) : '-'
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (b) => (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <button 
+            onClick={() => handleView(b)}
+            className="action-btn action-btn-primary" 
+            title="View Bill"
+          >
+            <Eye size={16} />
+          </button>
+          <button 
+            onClick={() => handleEdit(b)}
+            className="action-btn action-btn-warning" 
+            title="Edit Bill"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            onClick={() => handleDelete(b.id)}
+            className="action-btn action-btn-danger" 
+            title="Delete Bill"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
+  ];
+
   return (
-    <div>
-      <div className="page-header">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <PageHeader title="Billing Management">
         <div style={{ position: 'relative', width: '300px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
+          <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' }} />
           <input
             type="text"
             className="form-input"
             placeholder="Search invoices, vendors..."
-            style={{ paddingLeft: '2.5rem' }}
+            style={{ paddingLeft: '2.5rem', width: '100%' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -240,321 +341,236 @@ export default function BillingManagement() {
           <Plus size={18} style={{ marginRight: '0.5rem' }} />
           Add Bill
         </button>
+      </PageHeader>
+
+      <div className="card p-0" style={{ overflow: 'hidden' }}>
+        <DataTable
+          columns={columns}
+          data={filteredBillings}
+          keyExtractor={(b) => b.id}
+          loading={loading}
+          emptyState={
+            <EmptyState
+              icon={<Receipt size={48} />}
+              title="No bills found"
+              description="Adjust your search or add a new bill."
+            />
+          }
+        />
       </div>
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Invoice No</th>
-              <th>Vendor Name</th>
-              <th>Project</th>
-              <th>Milestone</th>
-              <th>Amount</th>
-              <th>Invoice Date</th>
-              <th>Status</th>
-              <th>Attachment</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '2rem' }}>Loading bills...</td></tr>
-            ) : filteredBillings.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted-foreground)' }}>No bills found</td></tr>
-            ) : (
-              filteredBillings.map((bill) => (
-                <tr key={bill.id}>
-                  <td className="font-medium">{bill.invoiceNo}</td>
-                  <td>{bill.vendorName}</td>
-                  <td>{bill.projectName}</td>
-                  <td>{bill.milestoneName}</td>
-                  <td className="font-medium text-primary">
-                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(bill.invoiceAmount)}
-                  </td>
-                  <td>{new Date(bill.actualDate).toLocaleDateString()}</td>
-                  <td>
-                    <span 
-                      style={{ 
-                        padding: '0.25rem 0.5rem', 
-                        borderRadius: '0.25rem', 
-                        fontSize: '0.75rem', 
-                        fontWeight: 600,
-                        backgroundColor: bill.paymentStatus === 'Paid' ? '#dcfce7' : '#fee2e2',
-                        color: bill.paymentStatus === 'Paid' ? '#16a34a' : '#dc2626'
-                      }}
-                    >
-                      {bill.paymentStatus}
-                    </span>
-                  </td>
-                  <td>
-                    {bill.attachmentUrl ? (
-                      <a 
-                        href={bill.attachmentUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', fontSize: '0.875rem', textDecoration: 'none', fontWeight: 500 }}
-                        title="View Document"
-                      >
-                        <Receipt size={16} />
-                        View
-                      </a>
-                    ) : '-'}
-                  </td>
-                  <td>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleView(bill)}
-                        className="btn" 
-                        style={{ padding: '0.25rem', color: 'var(--primary)' }}
-                        title="View Bill"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleEdit(bill)}
-                        className="btn" 
-                        style={{ padding: '0.25rem', color: '#f59e0b' }}
-                        title="Edit Bill"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(bill.id)}
-                        className="btn" 
-                        style={{ padding: '0.25rem', color: 'var(--destructive)' }}
-                        title="Delete Bill"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
-            <div className="modal-header flex justify-between items-center">
-              <h2 className="text-xl font-bold">Add New Bill</h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--muted-foreground)' }}>
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="form-label">Project Name *</label>
-                <select 
-                  className="form-input"
-                  value={selectedProjectId}
-                  onChange={(e) => {
-                    setSelectedProjectId(e.target.value);
-                    setSelectedMilestoneId('');
-                  }}
-                  required
-                >
-                  <option value="">Select Project</option>
-                  {projects.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="form-label">Milestone</label>
-                <select 
-                  className="form-input"
-                  value={selectedMilestoneId}
-                  onChange={(e) => setSelectedMilestoneId(e.target.value)}
-                  disabled={!selectedProjectId}
-                >
-                  <option value="">Select Milestone</option>
-                  {filteredMilestones.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="form-label">Vendor Name *</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  value={vendorName}
-                  onChange={(e) => setVendorName(e.target.value)}
-                  placeholder="Enter Vendor Name"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Invoice No *</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  value={invoiceNo}
-                  onChange={(e) => setInvoiceNo(e.target.value)}
-                  placeholder="INV-XXXX"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Invoice Amount *</label>
-                <input 
-                  type="text" 
-                  className="form-input"
-                  value={invoiceAmount}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/,/g, '').replace(/[^\d.]/g, '');
-                    setInvoiceAmount(val);
-                  }}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Invoice Date *</label>
-                <input 
-                  type="date" 
-                  className="form-input"
-                  value={actualDate}
-                  onChange={(e) => setActualDate(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Payment Status *</label>
-                <select 
-                  className="form-input"
-                  value={paymentStatus}
-                  onChange={(e) => setPaymentStatus(e.target.value)}
-                  required
-                >
-                  <option value="Not Paid">Not Paid</option>
-                  <option value="Paid">Paid</option>
-                </select>
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="form-label">Billing Attachment</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    style={{ display: 'none' }}
-                    onChange={handleFileChange}
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  />
-                  <button 
-                    className="btn btn-outline"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload size={16} style={{ marginRight: '0.5rem' }} />
-                    Choose File
-                  </button>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                    {fileName || 'No file chosen'}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="modal-footer flex justify-end gap-2" style={{ marginTop: '1.5rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave}>Save Bill</button>
-            </div>
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={currentBillingId ? 'Edit Bill' : 'Add New Bill'}
+        maxWidth="600px"
+        footer={
+          <>
+            <button type="button" className="btn" style={{ background: 'transparent', color: 'var(--color-text-secondary)' }} onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" form="billing-form" className="btn btn-primary">
+              Save Bill
+            </button>
+          </>
+        }
+      >
+        <form id="billing-form" onSubmit={(e) => { e.preventDefault(); handleSave(); }} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="form-label">Project Name *</label>
+            <select 
+              className="form-input"
+              value={selectedProjectId}
+              onChange={(e) => {
+                setSelectedProjectId(e.target.value);
+                setSelectedMilestoneId('');
+              }}
+              required
+            >
+              <option value="">Select Project</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
 
-      {/* View Modal */}
-      {isViewModalOpen && currentBilling && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-800">Billing Details</h2>
-              <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Project</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.projectName || '-'}</p>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Milestone</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.milestoneName || '-'}</p>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Vendor Name</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.vendorName || '-'}</p>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Invoice No</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.invoiceNo || '-'}</p>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Invoice Amount</p>
-                <p className="text-base font-medium text-emerald-600">
-                  {currentBilling.invoiceAmount ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(currentBilling.invoiceAmount) : '-'}
-                </p>
-              </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="form-label">Milestone</label>
+            <select 
+              className="form-input"
+              value={selectedMilestoneId}
+              onChange={(e) => setSelectedMilestoneId(e.target.value)}
+              disabled={!selectedProjectId}
+            >
+              <option value="">Select Milestone</option>
+              {filteredMilestones.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
 
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Actual Date</p>
-                <p className="text-base font-medium text-slate-900">{currentBilling.actualDate ? new Date(currentBilling.actualDate).toLocaleDateString() : '-'}</p>
-              </div>
-              
-              <div className="col-span-2">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Status & Attachments</p>
-                <div className="flex items-center gap-4">
-                  <span 
-                    style={{ 
-                      padding: '0.25rem 0.5rem', 
-                      borderRadius: '0.25rem', 
-                      fontSize: '0.75rem', 
-                      fontWeight: 600,
-                      backgroundColor: currentBilling.paymentStatus === 'Paid' ? '#dcfce7' : '#fee2e2',
-                      color: currentBilling.paymentStatus === 'Paid' ? '#16a34a' : '#dc2626'
-                    }}
-                  >
-                    {currentBilling.paymentStatus}
-                  </span>
-                  {currentBilling.attachmentUrl && (
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
-                      <Receipt size={16} />
-                      Document Attached
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="form-label">Vendor Name *</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={vendorName}
+              onChange={(e) => setVendorName(e.target.value)}
+              placeholder="Enter Vendor Name"
+              required
+            />
+          </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end">
+          <div className="form-group">
+            <label className="form-label">Invoice No *</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={invoiceNo}
+              onChange={(e) => setInvoiceNo(e.target.value)}
+              placeholder="INV-XXXX"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Invoice Amount *</label>
+            <input 
+              type="text" 
+              className="form-input"
+              value={invoiceAmount}
+              onChange={(e) => {
+                const val = e.target.value.replace(/,/g, '').replace(/[^\d.]/g, '');
+                setInvoiceAmount(val);
+              }}
+              placeholder="0.00"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Invoice Date *</label>
+            <input 
+              type="date" 
+              className="form-input"
+              value={actualDate}
+              onChange={(e) => setActualDate(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Payment Status *</label>
+            <select 
+              className="form-input"
+              value={paymentStatus}
+              onChange={(e) => setPaymentStatus(e.target.value)}
+              required
+            >
+              <option value="Not Paid">Not Paid</option>
+              <option value="Paid">Paid</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="form-label">Billing Attachment</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              />
               <button 
-                className="btn btn-primary"
-                onClick={() => setIsViewModalOpen(false)}
+                type="button"
+                className="btn btn-outline"
+                onClick={() => fileInputRef.current?.click()}
               >
-                Close
+                <Upload size={16} style={{ marginRight: '0.5rem' }} />
+                Choose File
               </button>
+              <span style={{ fontSize: '0.875rem', color: 'var(--color-text-tertiary)' }}>
+                {fileName || 'No file chosen'}
+              </span>
+            </div>
+          </div>
+        </form>
+      </FormModal>
+
+      <FormModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Billing Details"
+        maxWidth="600px"
+        footer={
+          <button type="button" className="btn" style={{ background: 'var(--color-bg-subtle)', color: 'var(--color-text-primary)' }} onClick={() => setIsViewModalOpen(false)}>
+            Close Window
+          </button>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Project</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+                {currentBilling.projectName || '-'}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Milestone</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-secondary)' }}>
+                {currentBilling.milestoneName || '-'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Vendor Name</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                {currentBilling.vendorName || '-'}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Invoice No</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-secondary)' }}>
+                {currentBilling.invoiceNo || '-'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Invoice Amount</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-success)' }}>
+                {currentBilling.invoiceAmount ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(currentBilling.invoiceAmount) : '-'}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Actual Date</p>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-secondary)' }}>
+                {currentBilling.actualDate ? new Date(currentBilling.actualDate).toLocaleDateString() : '-'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-4)' }}>
+            <div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-1)' }}>Status & Attachments</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+                {getStatusBadge(currentBilling.paymentStatus || 'Not Paid')}
+                {currentBilling.attachmentUrl && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-primary)', backgroundColor: 'var(--color-bg-subtle)', padding: '0.25rem 0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                    <Receipt size={14} />
+                    Document Attached
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </FormModal>
     </div>
   );
 }
