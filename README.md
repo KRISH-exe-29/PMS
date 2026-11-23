@@ -21,6 +21,18 @@
 - Compare budgets with actual costs and track billing.
 - Each person sees what their role needs: admin / project manager, team leader, team member, finance, or read-only stakeholder.
 
+## See it in 30 seconds
+
+<a href="docs/film/epms.mp4">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/film/epms-dark.gif">
+    <source media="(prefers-color-scheme: light)" srcset="docs/film/epms-light.gif">
+    <img src="docs/film/epms-dark.gif" width="100%" alt="Animated film drawn as an engineering blueprint: scattered spreadsheets, a live Gantt chart, an approved daily progress report, budgets and five roles">
+  </picture>
+</a>
+
+<p align="center"><sub>EPMS in 30 seconds. The preview plays silently with subtitles; <a href="docs/film/epms.mp4">open the MP4</a> for the narrated version with music.</sub></p>
+
 ## Quick start
 
 ```bash
