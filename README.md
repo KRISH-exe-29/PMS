@@ -5,7 +5,7 @@
 <h1 align="center">INDOTECH Enterprise Project Management System</h1>
 
 <p align="center">
-  <strong>Enterprise-grade project planning, milestone tracking, and financial management platform</strong>
+  <strong>One place for Indo Tech Transformers to plan projects, follow milestones on a Gantt chart, and keep budgets and daily progress reports under control, with access set by role.</strong>
 </p>
 
 <p align="center">
@@ -14,6 +14,23 @@
   <img src="https://img.shields.io/badge/Supabase-Backend-3FCF8E?logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/License-Private-red" alt="Private" />
 </p>
+
+- See every project's health, progress and KPIs on one dashboard.
+- Break projects into milestones and tasks, and follow them on an interactive Gantt chart.
+- Collect daily progress reports (DPRs) from the team and approve them.
+- Compare budgets with actual costs and track billing.
+- Each person sees what their role needs: admin / project manager, team leader, team member, finance, or read-only stakeholder.
+
+## Quick start
+
+```bash
+git clone https://github.com/KRISH-exe-29/PMS.git && cd PMS
+npm run install:all
+cp client/.env.example client/.env    # add your Supabase URL and anon key
+npm run dev                            # http://localhost:5173
+```
+
+You need a Supabase project with the scripts in `database/` run in its SQL editor first. See **Database Setup** below.
 
 ---
 
@@ -111,25 +128,7 @@ Built with **React 19 + Vite** on the frontend and **Supabase** (PostgreSQL + Au
 
 ### Installation
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/KRISH-exe-29/PMS.git
-cd PMS
-
-# 2. Install dependencies (installs root, client, and server packages)
-npm run install:all
-
-# 3. Set up environment variables
-cd client
-cp .env.example .env
-# Edit .env with your Supabase project URL and anon key
-
-# 4. Start the development environment
-cd ..
-npm run dev
-```
-
-The application will be available at `http://localhost:5173/`
+See [Quick start](#quick-start) above.
 
 ### Environment Variables
 
